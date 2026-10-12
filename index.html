@@ -400,7 +400,7 @@ const BACKUP_DIR = 'backups';
 const BACKUPS_KEPT = 60;
 const MIRROR_KEY = 'dap.mirror.v1';
 const FS_OK = 'showDirectoryPicker' in window && !(window.Capacitor && window.capacitorExports);      // inside the phone app, the plan is kept by the app itself
-const WEB_ADDRESS = '';                 // where the DAP is opened from, once it is published (see the setup notes)
+const WEB_ADDRESS = 'https://awanarehman.github.io/dap/';                 // where the DAP is opened from, once it is published (see the setup notes)
 
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -2090,7 +2090,7 @@ function stampChanges() {
 /* ---------- signing in ---------- */
 const b64url = buf => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 const randomText = n => b64url(crypto.getRandomValues(new Uint8Array(n)));
-const REDIRECT = location.origin + location.pathname;
+const REDIRECT = location.origin + location.pathname.replace(/index\.html$/, '');        // the address registered with Google
 async function webSignIn() {          // goes to Google's page and comes back here with a code
   const verifier = randomText(48), state = randomText(12);
   const challenge = b64url(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier)));
