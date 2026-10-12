@@ -27,22 +27,31 @@ jobs:
       - name: Put the DAP page into the app
         run: npm run prepare-app && npx cap sync android
       - name: Signing key
+        id: key
         env:
           DAP_KEYSTORE_B64: ${{ secrets.DAP_KEYSTORE_B64 }}
         run: |
-          if [ -z "$DAP_KEYSTORE_B64" ]; then echo "::error::The DAP_KEYSTORE_B64 secret is missing (Settings > Secrets and variables > Actions)"; exit 1; fi
-          echo "$DAP_KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/dap.jks"
+          if [ -z "$DAP_KEYSTORE_B64" ]; then
+            echo "::warning::No signing key yet (secret DAP_KEYSTORE_B64). Building a test copy only; it is not published."
+            echo "signed=no" >> "$GITHUB_OUTPUT"
+          else
+            echo "$DAP_KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/dap.jks"
+            echo "signed=yes" >> "$GITHUB_OUTPUT"
+          fi
       - name: Build
         env:
-          DAP_KEYSTORE: ${{ runner.temp }}/dap.jks
+          DAP_KEYSTORE: ${{ steps.key.outputs.signed == 'yes' && format('{0}/dap.jks', runner.temp) || '' }}
           DAP_KEYSTORE_PASSWORD: ${{ secrets.DAP_KEYSTORE_PASSWORD }}
           DAP_VERSION_CODE: ${{ github.run_number }}
-        run: cd android && chmod +x gradlew && ./gradlew --no-daemon assembleRelease
+        run: |
+          cd android && chmod +x gradlew
+          if [ "${{ steps.key.outputs.signed }}" = "yes" ]; then ./gradlew --no-daemon assembleRelease && cp app/build/outputs/apk/release/app-release.apk ../DAP.apk
+          else ./gradlew --no-daemon assembleDebug && cp app/build/outputs/apk/debug/app-debug.apk ../DAP.apk; fi
       - name: Publish the app for download
+        if: steps.key.outputs.signed == 'yes'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          cp android/app/build/outputs/apk/release/app-release.apk DAP.apk
           gh release delete app --yes --cleanup-tag || true
           gh release create app DAP.apk --title "DAP for Android, version 6.${{ github.run_number }}" --notes "Built $(date -u '+%d %b %Y %H:%M') UTC from $(git rev-parse --short HEAD). Download DAP.apk on the phone and open it to install or update." --latest
       - uses: actions/upload-artifact@v4
