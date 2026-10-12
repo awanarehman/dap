@@ -1,0 +1,2423 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Daily Action Plan</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='4' y='6' width='22' height='22' rx='3' fill='%23fff' stroke='%231B2430' stroke-width='3'/%3E%3Cpath d='M9 16c3 2 5 5 7 8 4-8 9-14 15-19' fill='none' stroke='%231C4FA1' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E">
+<!--
+  Daily Action Plan (DAP): Work Management System, Parts 1 to 5.
+  One self-contained file. No libraries, nothing to install.
+  Open in Edge or Chrome. Data is kept in "DAP Data/dap-data.json" in the folder you choose.
+
+  Code map (search for these headings):
+    1. Helpers          2. Data model        3. Saving (file + browser copy)
+    4. Actions          5. Drawing the page  6. Events            7. Start-up
+-->
+<style>
+:root{
+  --desk:#DCE2E6;      /* the desk under the sheet */
+  --paper:#FFFFFF;
+  --ink:#1B2430;       /* blue-black: steps and interface text */
+  --red:#B3222B;       /* red pen: the plan itself */
+  --blue:#1C4FA1;      /* blue pen: ticks and notes */
+  --tab:#F2C230;       /* file divider tab */
+  --rule:#D9DFE5;
+  --faint:#F1F4F6;
+  --muted:#667382;
+  --f-plan:"Bahnschrift","DIN Alternate","Segoe UI",system-ui,-apple-system,Roboto,sans-serif;
+  --f-ui:"Segoe UI Variable Text","Segoe UI",system-ui,-apple-system,Roboto,sans-serif;
+}
+*{box-sizing:border-box}
+html{font-size:16px}
+body{margin:0;background:var(--desk);color:var(--ink);font-family:var(--f-ui);font-size:14px;line-height:1.4;-webkit-text-size-adjust:100%}
+button,input,textarea,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--blue);outline-offset:2px;border-radius:2px}
+[hidden]{display:none!important}
+
+/* ---------- layout ---------- */
+.wrap{padding:20px 16px 60px;transition:padding-right .15s}
+.sheet{max-width:1180px;margin:0 auto;background:var(--paper);border:1px solid #C3CCD3;box-shadow:0 1px 0 #B9C2C9, 0 10px 24px -18px rgba(27,36,48,.55);padding:26px 30px 22px}
+body.drawer-open .wrap{padding-right:416px}
+
+/* ---------- header ---------- */
+.top{display:flex;align-items:flex-end;justify-content:space-between;gap:16px 24px;flex-wrap:wrap;padding-bottom:14px;border-bottom:2px solid var(--ink)}
+.top h1{margin:0;font-family:var(--f-plan);font-weight:600;font-size:28px;line-height:1.05;color:var(--red);letter-spacing:.01em;display:flex;gap:.7em;align-items:baseline;flex-wrap:wrap}
+.top h1 .date{font-variant-numeric:tabular-nums}
+.top .sub{margin:6px 0 0;color:var(--muted);font-size:13px}
+.tools{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+.tools .btns{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+#savestate{font-size:12.5px;color:var(--muted);text-align:right}
+#savestate.warn{color:var(--red)}
+#syncstate{font-size:12.5px;color:var(--muted);text-align:right;margin-top:2px}
+#syncstate.warn{color:var(--red);font-weight:600}
+input.devname{width:140px;border:1px solid #AEB8C1;border-radius:4px;padding:2px 6px;font:inherit}
+body.native .grip{display:none}
+.btn{background:var(--paper);border:1px solid #AEB8C1;border-radius:4px;padding:5px 11px;font-size:13px;line-height:1.3}
+.btn:hover{border-color:var(--ink)}
+.btn:disabled{opacity:.45;cursor:default;border-color:#AEB8C1}
+.btn.primary{background:var(--ink);border-color:var(--ink);color:#fff}
+.btn.primary:hover{background:#000}
+.btn.quiet{border-color:transparent;color:var(--muted);padding:4px 7px}
+.btn.quiet:hover{color:var(--ink);border-color:#AEB8C1}
+.btn.danger{color:var(--red)}
+
+.notice{margin:14px 0 0;padding:10px 14px;background:#FFF8DC;border-left:4px solid var(--tab);display:flex;gap:10px 16px;align-items:center;flex-wrap:wrap;font-size:13.5px}
+.notice.bad{background:#FCEDEE;border-left-color:var(--red)}
+.notice.day{background:var(--faint);border-left-color:var(--ink)}
+
+/* ---------- moving between days ---------- */
+.days{display:flex;align-items:center;flex-wrap:wrap;gap:4px;margin:12px 0 0;min-width:0}
+.tog{margin-left:auto;display:inline-flex;align-items:center;gap:9px;background:none;border:0;border-radius:4px;padding:5px 2px 5px 6px;font-size:13px;color:var(--ink)}
+.tog:hover{background:var(--faint)}
+.tog .sw{position:relative;flex:none;width:34px;height:20px;border-radius:10px;background:#B9C3CC;transition:background .15s}
+.tog .sw::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.3);transition:transform .15s}
+.tog[aria-checked=true] .sw{background:var(--blue)}
+.tog[aria-checked=true] .sw::after{transform:translateX(14px)}
+.days>.btn{font-size:20px;line-height:1;padding:5px 9px 7px}
+.daystrip{display:flex;flex:0 1 auto;gap:4px;overflow-x:auto;min-width:0;padding:2px;scrollbar-width:thin}
+.daybtn{flex:none;background:var(--paper);border:1px solid var(--rule);border-radius:4px;padding:3px 9px 2px;font-family:var(--f-plan);font-size:14px;line-height:1.2;font-variant-numeric:tabular-nums;text-align:center}
+.daybtn span{display:block;font-family:var(--f-ui);font-size:11px;color:var(--muted)}
+.daybtn:hover{border-color:var(--ink)}
+.daybtn.now{color:var(--red);border-color:#DDA9AD}
+.daybtn.now span{color:var(--red)}
+.daybtn.on,.daybtn.on:hover{background:var(--ink);border-color:var(--ink);color:#fff}
+.daybtn.on span{color:#C9D2DA}
+.pickwrap{position:relative;display:inline-flex;flex:none}
+.pickwrap input[type=date]{position:absolute;left:0;bottom:0;width:100%;height:100%;padding:0;border:0;opacity:0;pointer-events:none}
+.pickwrap input[type=date].show{position:static;width:auto;height:auto;opacity:1;pointer-events:auto;border:1px solid #AEB8C1;border-radius:4px;padding:4px 6px;margin-left:6px}
+.days .pickwrap{margin-left:8px}
+.sheet.past .top h1,.sheet.future .top h1{color:var(--ink)}
+.notice p{margin:0;flex:1 1 320px}
+
+/* ---------- sections ---------- */
+.section{margin-top:22px}
+.shead{display:flex;align-items:stretch;gap:10px;border-bottom:1.5px solid var(--ink)}
+.stab{font-family:var(--f-plan);font-weight:700;font-size:15px;background:var(--tab);color:var(--ink);min-width:30px;padding:5px 9px 3px;text-align:center;border-radius:5px 5px 0 0;font-variant-numeric:tabular-nums}
+.sname{font-family:var(--f-plan);font-weight:600;font-size:17px;padding:4px 2px 2px;min-width:3ch;outline-offset:1px}
+.stab.fixed{background:var(--ink);color:#fff}
+.sname:empty::before{content:"Section name";color:var(--muted);font-weight:400}
+.scount{align-self:center;color:var(--muted);font-size:12.5px;margin-left:2px}
+.sact{margin-left:auto;display:flex;gap:2px;align-items:center;opacity:0;transition:opacity .1s}
+.section:hover .sact,.section:focus-within .sact{opacity:1}
+.section.drop-end .addtask{box-shadow:inset 0 2px 0 var(--blue)}
+
+/* ---------- task rows ---------- */
+.row{display:grid;grid-template-columns:18px 40px 26px minmax(190px,30%) 1fr auto;column-gap:6px;align-items:start;padding:8px 0 7px;border-bottom:1px solid var(--rule);position:relative}
+.row.dragging{opacity:.4}
+.latercap{padding:6px 0 4px 102px;font-size:12px;color:var(--muted);border-bottom:1px dashed #C3CCD4}
+.row.later .num{font-size:12.5px;color:var(--muted);padding-top:3px;white-space:nowrap}
+.row.later .title{color:#7C8794}
+.row.later .sword{color:#7C8794}
+.none{margin:0;padding:9px 0 8px 102px;color:var(--muted);font-size:13px;border-bottom:1px solid var(--rule)}
+.row.drop-before{box-shadow:inset 0 2px 0 var(--blue)}
+.row.drop-after{box-shadow:inset 0 -2px 0 var(--blue)}
+.row.has-notes .padtop{padding-top:16px}
+.grip{background:none;border:0;padding:3px 0 0;width:18px;color:#B4BEC7;cursor:grab;font-size:13px;line-height:1;letter-spacing:-2px;opacity:0;touch-action:none}
+.row:hover .grip,.row:focus-within .grip{opacity:1}
+.grip:active{cursor:grabbing}
+.num{font-family:var(--f-plan);font-size:16.5px;color:var(--red);text-align:right;font-variant-numeric:tabular-nums;padding-right:2px;line-height:1.35}
+.tbox{position:relative;width:18px;height:18px;margin:2px 0 0 4px;padding:0;background:var(--paper);border:1.5px solid var(--ink);border-radius:3px}
+.tbox .tk{position:absolute;left:1px;top:-3px;width:21px;height:17px;stroke-width:2.1}
+.row.cancelled .tbox{border-color:#B4BEC7}
+.row.cancelled .tbox::after{content:"";position:absolute;left:3px;right:3px;top:6.5px;border-top:1.5px solid #8793A0}
+.tmain{min-width:0}
+.title{display:inline-block;max-width:100%;min-width:4ch;font-family:var(--f-plan);font-weight:500;font-size:16.5px;line-height:1.35;color:var(--red);overflow-wrap:anywhere;border-radius:2px;outline-offset:1px}
+.title:empty::before{content:"Task";color:var(--muted)}
+.row.done .title{color:#8A6064}
+.row.done .num,.row.cancelled .num{color:#9AA5B0}
+.row.cancelled .title{color:#8793A0;text-decoration:line-through;text-decoration-thickness:1.5px}
+.tnote{display:block;max-width:100%;background:none;border:0;padding:1px 0 0;text-align:left;color:var(--blue);font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rend{padding-left:10px}
+.pid{background:none;border:0;padding:3px 0 0;font-family:var(--f-plan);font-size:12.5px;color:#93A0AC;font-variant-numeric:tabular-nums;white-space:nowrap}
+.pid:hover{color:var(--ink);text-decoration:underline}
+.rend{position:relative;display:flex;align-items:flex-start;justify-content:flex-end;gap:2px;min-width:86px}
+.rmore{background:none;border:0;border-radius:4px;width:22px;height:22px;padding:0;margin-top:-1px;color:#93A0AC;font-size:17px;line-height:1}
+.rmore:hover,.rmore[aria-expanded=true]{color:var(--ink);background:var(--faint)}
+.rmenu{position:absolute;right:0;top:24px;z-index:15;min-width:176px;background:var(--paper);border:1.5px solid var(--ink);padding:4px;display:flex;flex-direction:column;box-shadow:0 8px 18px -10px rgba(27,36,48,.6)}
+.rmenu button{background:none;border:0;border-radius:3px;text-align:left;padding:6px 10px;font-size:13.5px;white-space:nowrap}
+.rmenu button:hover,.rmenu button:focus-visible{background:var(--faint)}
+.rmenu hr{border:0;border-top:1px solid var(--rule);margin:4px 0;width:100%}
+.mrow{display:flex;align-items:center;gap:4px;padding:3px 6px 3px 10px}
+.mrow>span{flex:none;width:68px;font-size:12.5px;color:var(--muted)}
+.rmenu .mrow button{border:1px solid var(--rule);padding:3px 8px;font-size:13px}
+.rmenu .mrow button:hover,.rmenu .mrow button:focus-visible{border-color:var(--ink)}
+
+/* ---------- reminders ---------- */
+.bell{width:11px;height:11px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;vertical-align:-1px;margin-right:2px}
+.rem{background:none;border:0;padding:0 0 0 8px;color:var(--blue);font-size:12.5px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.rem.due,.snote .at.due{color:var(--red);font-weight:600}
+.snote .at{font-variant-numeric:tabular-nums}
+#alerts{position:sticky;top:0;z-index:15;background:var(--ink);color:#fff;box-shadow:0 2px 10px rgba(27,36,48,.35)}
+.duerow{display:flex;align-items:center;gap:6px 14px;flex-wrap:wrap;padding:9px 18px;border-top:1px solid #3A4656}
+.duerow:first-child{border-top:0}
+.due-when{font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+.due-when .bell{width:14px;height:14px;vertical-align:-2px;margin-right:5px}
+.due-what{background:none;border:0;padding:0;color:#fff;font-family:var(--f-plan);font-size:16px;text-align:left;text-decoration:underline;text-decoration-color:#7C8794;text-underline-offset:3px;overflow-wrap:anywhere}
+.due-what:hover{text-decoration-color:#fff}
+.due-under{color:#B9C3CD;font-size:13px}
+.due-acts{margin-left:auto;display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.due-acts .lbl{color:#B9C3CD;font-size:12.5px;margin-left:8px}
+.due-acts .btn{background:transparent;border-color:#6B7785;color:#fff;padding:4px 9px}
+.due-acts .btn:hover{border-color:#fff}
+.due-acts .btn.primary{background:#fff;border-color:#fff;color:var(--ink)}
+#alerts :focus-visible{outline-color:#fff}
+.remlist{list-style:none;margin:0 0 8px;padding:0;border-top:1px solid var(--rule)}
+.remlist li{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:4px 0;border-bottom:1px solid var(--rule);font-size:13.5px;color:var(--blue);font-variant-numeric:tabular-nums}
+.remlist li.due{color:var(--red);font-weight:600}
+.state .pre{font-size:12.5px;color:var(--muted);min-width:16px}
+.fld .state + .state{margin-top:6px}
+.fld .state input[type=time],.fld .state select{width:auto;padding:4px 7px}
+.err{margin:6px 0 0;color:var(--red);font-size:13px}
+@media (min-width:1101px){ body.drawer-open #alerts{margin-right:400px} }
+.row.drop-into{background:#F2F6FC;box-shadow:inset 3px 0 0 var(--blue)}
+.addwrap{position:relative}
+.dropzone{position:absolute;inset:0;display:none;align-items:center;padding-left:102px;background:#F2F6FC;border:1.5px dashed var(--blue);color:var(--blue);font-size:13.5px;pointer-events:none}
+body.step-drag .dropzone{display:flex;pointer-events:auto}
+.section.drop-task .dropzone{background:#D7E5FA;border-style:solid;font-weight:600}
+.section.drop-task .shead{box-shadow:inset 0 -3px 0 var(--blue)}
+.step.dragging,.mini.dragging{opacity:.35}
+.step.drop-left::before,.step.drop-right::after{content:"";position:absolute;top:0;bottom:0;border-left:2.5px solid var(--blue)}
+.step.drop-left::before{left:-11px}
+.step.drop-right::after{right:-11px}
+
+/* ---------- steps: an underlined word, ticked beneath ---------- */
+.steps{display:flex;flex-wrap:wrap;align-items:flex-start;gap:6px 20px;min-width:0;padding-left:8px}
+.step{display:inline-flex;flex-direction:column;align-items:flex-start;position:relative;max-width:100%}
+.snote{display:block;height:16px;font-size:11.5px;line-height:15px;color:var(--blue);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:170px}
+.sbtn{background:none;border:0;padding:0;display:inline-flex;flex-direction:column;align-items:center;text-align:left;border-radius:2px}
+.sline{display:inline-flex;align-items:flex-end;gap:3px}
+.sword{font-family:var(--f-plan);font-size:15.5px;line-height:1.3;border-bottom:1.6px solid currentColor;padding:0 1px;overflow-wrap:anywhere}
+.under{display:block;height:13px;line-height:0;padding-top:2px}
+.tk{width:15px;height:11px;fill:none;stroke:var(--blue);stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;overflow:visible}
+.sline>.tk{margin-bottom:4px}
+.step.done>.sbtn .sword,.mini.done .sword{color:#56616E}
+.step.cancelled>.sbtn .sword,.mini.cancelled .sword{color:#8793A0;border-bottom-color:transparent;text-decoration:line-through;text-decoration-thickness:1.5px}
+.step.later>.sbtn .sword,.mini.later .sword{color:#7C8794;border-bottom-style:dashed}
+.snote .from{color:var(--muted)}
+.sbtn:not(:disabled):hover .sword{background:var(--faint)}
+.sbtn:disabled,.tbox:disabled{cursor:default}
+.sopen{position:absolute;right:-16px;top:0;width:15px;height:20px;padding:0;background:none;border:0;color:var(--muted);font-size:15px;line-height:1;opacity:0}
+.step.noted>.sopen{top:16px}
+.step:hover>.sopen,.sopen:focus-visible{opacity:1}
+.sopen:hover{color:var(--ink)}
+.subs{display:flex;flex-wrap:wrap;gap:2px 9px;padding-top:3px}
+.mini .sword{font-size:12.5px;border-bottom-width:1.2px}
+.mini .under{height:10px;padding-top:1.5px}
+.mini .tk{width:11px;height:8px;stroke-width:2}
+.mini .more{font-family:var(--f-ui);font-size:10.5px;color:var(--muted);border:0;margin-left:2px}
+.addstep{border:0;border-bottom:1.6px dashed transparent;background:none;width:6ch;padding:0 1px;font-family:var(--f-plan);font-size:15.5px;line-height:1.3;outline:none}
+.addstep::placeholder{color:#C3CCD4;transition:color .1s}
+.row:hover .addstep::placeholder,.addstep:focus::placeholder{color:#8793A0}
+.addstep:focus{width:18ch;border-bottom-color:var(--blue)}
+
+.addtask{display:block;width:100%;border:0;border-bottom:1px solid var(--rule);background:none;padding:9px 0 8px 102px;font-family:var(--f-plan);font-size:16px;outline:none}
+.addtask::placeholder{color:#9CA8B3}
+.addtask:focus{border-bottom-color:var(--blue);background:var(--faint)}
+.addsection{margin-top:18px}
+.key{margin:22px 0 0;padding-top:10px;border-top:1px solid var(--rule);color:var(--muted);font-size:12.5px}
+.key b{font-weight:600;color:#4B5766}
+
+/* ---------- details drawer ---------- */
+.drawer{position:fixed;top:0;right:0;bottom:0;width:400px;max-width:100vw;background:var(--paper);border-left:2px solid var(--ink);display:flex;flex-direction:column;z-index:20}
+.dhead{display:flex;align-items:flex-start;gap:8px;padding:14px 14px 10px 18px;border-bottom:1px solid var(--rule)}
+.crumbs{flex:1;display:flex;flex-wrap:wrap;gap:2px 6px;align-items:baseline;font-size:12.5px;color:var(--muted);min-width:0}
+.crumbs button{background:none;border:0;padding:0;color:var(--blue);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.crumbs button:hover{text-decoration:underline}
+.crumbs .here{color:var(--ink);font-weight:600}
+.dclose{background:none;border:0;font-size:22px;line-height:1;padding:0 4px;color:var(--muted)}
+.dclose:hover{color:var(--ink)}
+.drawer-body{flex:1;overflow:auto;padding:14px 18px 24px}
+.fld{display:block;margin:0 0 16px}
+.fld>span,.fld>.lbl{display:block;font-size:12.5px;font-weight:600;color:#4B5766;margin-bottom:4px}
+.fld .hint{font-weight:400;color:var(--muted)}
+.fld input[type=text],.fld textarea,.fld select{width:100%;border:1px solid #AEB8C1;border-radius:4px;padding:7px 9px;background:var(--paper)}
+.fld textarea{resize:vertical;min-height:74px;line-height:1.4;color:var(--blue)}
+.fld textarea.plain{color:var(--ink)}
+.fld input.big{font-family:var(--f-plan);font-size:17px;font-weight:500;color:var(--red)}
+.fld input.big.step{color:var(--ink)}
+.state{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:0 0 16px}
+.fld .state{margin-bottom:0}
+.when{margin:0 0 8px;font-size:13.5px}
+.fld input:disabled,.fld textarea:disabled,.fld select:disabled{background:var(--faint);color:#4B5766;opacity:1}
+.state .btn[aria-pressed=true]{background:var(--ink);border-color:var(--ink);color:#fff}
+.klist{list-style:none;margin:0 0 6px;padding:0;border-top:1px solid var(--rule)}
+.klist li{display:flex;align-items:flex-start;gap:8px;padding:6px 0;border-bottom:1px solid var(--rule)}
+.klist .tbox{flex:none;margin:1px 0 0}
+.klist li.cancelled .tbox{border-color:#B4BEC7}
+.kname{flex:1;background:none;border:0;padding:0;text-align:left;font-family:var(--f-plan);font-size:15px;min-width:0;overflow-wrap:anywhere}
+.kname:hover{text-decoration:underline}
+.klist li.done .kname{color:#56616E}
+.klist li.cancelled .kname{color:#8793A0;text-decoration:line-through}
+.kinfo{flex:none;font-size:12px;color:var(--muted);white-space:nowrap;padding-top:2px}
+.addk{width:100%;border:0;border-bottom:1.6px dashed #AEB8C1;padding:6px 1px;font-family:var(--f-plan);font-size:15px;outline:none;background:none}
+.addk:focus{border-bottom-color:var(--blue)}
+.dmeta{font-size:12.5px;color:var(--muted);margin:4px 0 14px}
+.confirm{background:#FCEDEE;border-left:4px solid var(--red);padding:10px 12px;font-size:13.5px}
+.confirm .btns{display:flex;gap:6px;margin-top:8px}
+.rule{border:0;border-top:1px solid var(--rule);margin:4px 0 16px}
+
+/* ---------- dialogs and full-page messages ---------- */
+.veil{position:fixed;inset:0;background:rgba(27,36,48,.42);z-index:40;display:flex;align-items:flex-start;justify-content:center;padding:6vh 16px;overflow:auto}
+.dialog{background:var(--paper);border:2px solid var(--ink);width:720px;max-width:100%;padding:20px 22px 22px}
+.dialog h2{margin:0 0 4px;font-family:var(--f-plan);font-size:21px;font-weight:600}
+.dialog h3{margin:20px 0 4px;font-family:var(--f-plan);font-size:16px;font-weight:600}
+.dialog p{margin:0 0 10px;color:#4B5766;font-size:13.5px}
+.dialog.wide{width:860px}
+.horow{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 8px;font-size:13.5px}
+.horow .gap{margin-left:14px}
+.hono{width:76px;border:1px solid #AEB8C1;border-radius:4px;padding:5px 8px;background:var(--paper)}
+.dialog p.hofile{font-family:var(--f-plan);font-size:15px;color:var(--ink);margin:0 0 10px}
+.hoprev{border:1px solid #AEB8C1;max-height:44vh;overflow:auto;padding:18px 26px;background:#fff;font-family:Calibri,"Segoe UI",system-ui,sans-serif;font-size:14.5px;line-height:1.35;color:#000}
+.dialog .hoprev p{color:#000;margin:0}
+.dialog .hoprev p.hot{text-align:center;font-weight:700;text-decoration:underline;font-size:19px;margin-bottom:22px}
+.dialog .hoprev p.hoh{font-weight:700;text-decoration:underline;margin:16px 0 5px}
+.hoprev p.hoh:first-of-type{margin-top:0}
+.hoprev ol{margin:0 0 0 18px;padding-left:22px}
+.dialog .hoprev p.hos{font-weight:700;font-style:italic;margin:5px 0 1px 18px}
+.dialog .hoprev p.hotk{font-weight:700;margin:9px 0 2px 18px}
+.hoprev .hoe{margin-left:18px}
+.hoprev .hoe:first-of-type p.hotk{margin-top:0}
+.hoprev li{margin:0}
+.dialog .foot .hosum{margin-right:auto;align-self:center;color:var(--muted);font-size:13px}
+.dialog .foot{display:flex;justify-content:flex-end;gap:8px;margin-top:20px}
+.setrow{display:grid;grid-template-columns:190px 1fr auto auto;gap:8px;margin-bottom:6px;align-items:center}
+.setrow input.bad{border-color:var(--red);background:#FCEDEE}
+.setrow .pat{display:flex;gap:5px;align-items:center;font-size:13px;white-space:nowrap}
+.setrow .pat input{margin:0}
+.dialog code{font-family:Consolas,"Cascadia Mono",monospace;font-size:13px;background:var(--faint);padding:1px 4px;border-radius:3px}
+.setrow input{border:1px solid #AEB8C1;border-radius:4px;padding:6px 8px;min-width:0}
+.check{display:flex;gap:8px;align-items:flex-start;font-size:13.5px}
+.check input{margin-top:3px}
+.gate{max-width:520px;margin:14vh auto 0;background:var(--paper);border:2px solid var(--ink);padding:26px 28px}
+.gate h1{margin:0 0 8px;font-family:var(--f-plan);font-size:26px;font-weight:600;color:var(--red)}
+.gate p{margin:0 0 16px;color:#4B5766;font-size:14px}
+.gate .btns{display:flex;gap:8px;flex-wrap:wrap}
+
+/* ---------- narrow screens ---------- */
+@media (max-width:1100px){ body.drawer-open .wrap{padding-right:16px} }
+@media (max-width:760px){
+  .wrap{padding:0 0 40px}
+  .sheet{border:0;box-shadow:none;padding:18px 14px}
+  .row{grid-template-columns:28px 26px 1fr auto;row-gap:4px}
+  .grip{display:none}
+  .steps{grid-column:2 / -1;grid-row:2;padding-left:4px}
+  .rend{grid-row:1;grid-column:4}
+  .row.has-notes>.padtop{padding-top:0}
+  .addtask,.latercap,.none,.dropzone{padding-left:8px}
+  .days .pickwrap{margin-left:2px}
+  .sact{opacity:1}
+  .sopen{opacity:1}
+  .setrow{grid-template-columns:1fr}
+}
+@media (hover:none){ .sact,.sopen{opacity:1} }
+/* ---------- search ---------- */
+.qbox{width:210px;border:1px solid #AEB8C1;border-radius:4px;padding:5px 9px;font-size:13px;background:var(--paper)}
+.qbox:focus{outline:2px solid var(--blue);outline-offset:0;border-color:var(--blue)}
+.found{margin:12px 0 0;padding:10px 14px;background:#FFF6CC;border-left:4px solid #E2B500;font-size:13.5px}
+.found p{margin:0}
+.found .btn{margin-left:8px;padding:2px 8px}
+.found ul{list-style:none;margin:6px 0 0;padding:0}
+.found li{display:flex;gap:12px;align-items:baseline;flex-wrap:wrap;padding:2px 0}
+.found li button{background:none;border:0;padding:0;text-align:left;color:var(--ink);font-family:var(--f-plan);font-size:15px}
+.found li button:hover{text-decoration:underline}
+.found .fid{font-size:12.5px;color:#8793A0;margin-right:7px;font-variant-numeric:tabular-nums}
+.found .when{color:var(--muted);font-size:12.5px;white-space:nowrap}
+.title.hit,.step.hit>.sbtn .sword,.mini.hit .sword{background:#FFE98A}
+
+/* ---------- folding a section, urgent tasks ---------- */
+.fold{flex:none;background:none;border:0;width:18px;padding:0;color:var(--muted);font-size:13px;align-self:center;border-radius:3px}
+.fold:hover{color:var(--ink);background:var(--faint)}
+.section.folded .shead{border-bottom-style:dashed}
+.urg{display:inline-flex;align-items:center;justify-content:center;width:17px;height:17px;border-radius:50%;background:var(--red);color:#fff;font:700 12px/1 var(--f-ui);margin-right:7px;vertical-align:2px}
+.row.urgent{box-shadow:inset 3px 0 0 var(--red)}
+.tog + .tog{margin-left:12px}
+
+/* ---------- compact view ---------- */
+body.compact .row{padding:3px 0 2px}
+body.compact .title,body.compact .num{font-size:15px;line-height:1.25}
+body.compact .sword{font-size:14px;line-height:1.2}
+body.compact .under{height:9px;padding-top:1px}
+body.compact .under .tk{width:12px;height:9px}
+body.compact .snote{height:13px;line-height:13px;font-size:10.5px}
+body.compact .row.has-notes .padtop{padding-top:13px}
+body.compact .step.noted>.sopen{top:13px}
+body.compact .steps{gap:2px 14px}
+body.compact .tbox{width:16px;height:16px;margin-top:1px}
+body.compact .tnote{font-size:11.5px}
+body.compact .addtask{padding-top:5px;padding-bottom:4px;font-size:15px}
+body.compact .section{margin-top:14px}
+body.compact .mini .sword{font-size:12px}
+
+/* ---------- printing on A4 ---------- */
+@page{size:A4 portrait;margin:11mm 10mm}
+@media print{
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  html,body{background:#fff}
+  .wrap,body.drawer-open .wrap{padding:0}
+  .sheet{max-width:none;border:0;box-shadow:none;padding:0}
+  .tools,.days,.notice,.found,.addwrap,.addsection,.key,.grip,.rmore,.rmenu,.sact,.fold,.addstep,.sopen,.drawer,.veil,#alerts,.dropzone,.rem,.snote .at{display:none!important}
+  .top{padding-bottom:8px}
+  .top h1{font-size:22px}
+  .section{margin-top:12px}
+  .shead{break-after:avoid}
+  .row{break-inside:avoid;grid-template-columns:30px 24px minmax(150px,34%) 1fr auto;row-gap:0;padding:5px 0 4px}
+  .row>:first-child{display:none!important}
+  .row>.steps,.row>.rend{grid-column:auto;grid-row:auto;padding-left:0}
+  .title,.num{font-size:14px}
+  .sword{font-size:13px}
+  .mini .sword{font-size:11.5px}
+  .tnote{white-space:normal}
+  .pid{font-size:11px}
+  body.no-personal .section.personal{display:none}
+}
+@media (max-width:760px){
+  .qbox{width:150px}
+  .top h1{font-size:22px;gap:.5em}
+  .tools{align-items:stretch;width:100%}
+  .tools .btns{justify-content:flex-start}
+  .tools .btns .qbox{flex:1 1 100%;width:auto;font-size:15px;padding:7px 10px}
+  #savestate,#syncstate{text-align:left}
+}
+@media (prefers-reduced-motion:reduce){ *{transition:none!important} }
+</style>
+</head>
+<body>
+<div id="alerts" hidden aria-live="assertive"></div>
+<div id="app"></div>
+<script>
+'use strict';
+
+/* =====================================================================
+   1. Helpers
+   ===================================================================== */
+const APP = 'daily-action-plan';
+const SCHEMA = 2;
+const DATA_DIR = 'DAP Data';
+const DATA_FILE = 'dap-data.json';
+const BACKUP_DIR = 'backups';
+const BACKUPS_KEPT = 60;
+const MIRROR_KEY = 'dap.mirror.v1';
+const FS_OK = 'showDirectoryPicker' in window && !(window.Capacitor && window.capacitorExports);      // inside the phone app, the plan is kept by the app itself
+const WEB_ADDRESS = '';                 // where the DAP is opened from, once it is published (see the setup notes)
+
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const uid = () => (crypto.randomUUID ? crypto.randomUUID() : 'x' + Date.now().toString(36) + Math.random().toString(36).slice(2, 12));
+const nowIso = () => new Date().toISOString();
+const pad2 = n => String(n).padStart(2, '0');
+const dayOf = d => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+const today = () => dayOf(new Date());
+const clockTime = d => `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+const shortDate = day => { const [y, m, d] = day.split('-'); return `${d}/${m}/${y.slice(2)}`; };
+const longDate = day => { const [y, m, d] = day.split('-').map(Number); return new Intl.DateTimeFormat('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(new Date(y, m - 1, d)); };
+const plural = (n, one, many) => `${n} ${n === 1 ? one : (many || one + 's')}`;
+const oneLine = s => String(s || '').replace(/\s*\n\s*/g, ' ').trim();
+const taskCode = it => `${it.series || 'T'}-${String(it.no).padStart(4, '0')}`;
+const dayToDate = day => { const [y, m, d] = day.split('-').map(Number); return new Date(y, m - 1, d); };
+const addDays = (day, n) => { const d = dayToDate(day); d.setDate(d.getDate() + n); return dayOf(d); };
+const dayMonth = day => { const [, m, d] = day.split('-'); return `${d}/${m}`; };
+const weekday = day => new Intl.DateTimeFormat('en-GB', { weekday: 'short' }).format(dayToDate(day));
+const isDay = v => /^\d{4}-\d{2}-\d{2}$/.test(v) && v >= '2000-01-01' && v <= '2999-12-31';
+const BELL = '<svg class="bell" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.8c-2.4 0-4 1.8-4 4.2 0 3-1.4 4.3-1.4 5h10.8c0-.7-1.4-2-1.4-5 0-2.4-1.6-4.2-4-4.2z"/><path d="M6.6 13.4a1.5 1.5 0 0 0 2.8 0"/></svg>';
+const TICK = '<svg class="tk" viewBox="0 0 16 12" aria-hidden="true"><path d="M1.5 6.4c1.4 1.2 2.7 2.6 3.9 4.2 2.3-3.9 5.3-6.9 9.2-9"/></svg>';
+
+/* =====================================================================
+   2. Data model
+   Items form a tree: a task (parentId null) has sub-tasks, which can have
+   their own. Tasks are stored once; the daily plan is a view for a date.
+   ===================================================================== */
+let db = null;
+let byId = new Map();     // id -> item (not removed)
+let kidsOf = new Map();   // parent id, or 'S:' + section id -> ordered children
+let remOf = new Map();    // item id -> its reminders still to come or awaiting an answer, soonest first
+
+/* Sections come in three kinds. Each kind has its own daily 1, 2, 3 numbering and its own series of permanent IDs.
+   Personal and Procurement Cases are always on the DAP and cannot be removed. Personal is left out of handover notes. */
+const SERIES = { work: 'T', personal: 'P', procurement: 'PC' };
+const FIXED = [{ id: 'sec-procurement', kind: 'procurement', name: 'Procurement Cases' }, { id: 'sec-personal', kind: 'personal', name: 'Personal' }];
+
+function newDb() {
+  const t = nowIso();
+  return tidy({
+    app: APP, schema: SCHEMA,
+    meta: { id: uid(), createdAt: t, savedAt: t, next: { T: 1, P: 1, PC: 1 } },
+    settings: { showDoneSteps: true },
+    sections: [{ id: uid(), name: 'General', kind: 'work', order: 0, removed: false, createdAt: t, updatedAt: t }],
+    items: [],
+    sets: [{ id: uid(), name: 'Approval', steps: ['ST', 'PM', 'EM', 'AM'], updatedAt: t }],
+    reminders: [], rotations: [], log: []
+  });
+}
+
+function tidy(d) {            // bring any saved plan, including one from an earlier version, up to the current shape
+  const t = nowIso();
+  d.meta = d.meta || {};
+  if (!d.meta.id) d.meta.id = uid();
+  if (!d.meta.createdAt) d.meta.createdAt = t;
+  if (!d.meta.savedAt) d.meta.savedAt = t;
+  d.meta.next = Object.assign({ T: d.meta.nextNo || 1, P: 1, PC: 1 }, d.meta.next || {});
+  delete d.meta.nextNo;
+  d.settings = Object.assign({ showDoneSteps: true, notify: true, repeatReminders: true, compact: false, printPersonal: true }, d.settings || {});
+  if (!Array.isArray(d.reminders)) d.reminders = [];
+  const monthAgo = new Date(Date.now() - 30 * 864e5).toISOString();       // answered reminders are kept a month, then dropped
+  d.reminders = d.reminders.filter(r => r && r.id && r.itemId && r.at && (r.state === 'pending' || r.state === 'due' || (r.updatedAt || r.at) > monthAgo));
+  for (const k of ['sections', 'items', 'reminders', 'rotations', 'handovers', 'log']) if (!Array.isArray(d[k])) d[k] = [];
+  if (!Array.isArray(d.sets)) d.sets = [{ id: uid(), name: 'Approval', steps: ['ST', 'PM', 'EM', 'AM'], updatedAt: t }];
+  for (const s of d.sets) { if (s.for !== 'task') s.for = 'step'; s.regex = !!s.regex; if (!Array.isArray(s.steps)) s.steps = []; if (typeof s.name !== 'string') s.name = ''; }
+  for (const s of d.sections) { if (!s.kind) s.kind = 'work'; if (s.collapsed === undefined) s.collapsed = false; }
+  let top = Math.max(-1, ...d.sections.map(s => s.order));
+  for (const f of FIXED) {
+    let s = d.sections.find(x => x.id === f.id);
+    if (!s) { s = { id: f.id, order: ++top, createdAt: t, updatedAt: t }; d.sections.push(s); }
+    s.kind = f.kind; s.name = f.name; s.removed = false;
+  }
+  for (const it of d.items) { if (!it.parentId && !it.series) it.series = 'T'; if (it.deferUntil === undefined) it.deferUntil = null; }
+  d.app = APP; d.schema = SCHEMA;
+  return d;
+}
+
+function buildIndex() {
+  byId = new Map(); kidsOf = new Map();
+  for (const it of db.items) {
+    if (it.removed) continue;
+    byId.set(it.id, it);
+    const k = it.parentId || 'S:' + it.sectionId;
+    if (!kidsOf.has(k)) kidsOf.set(k, []);
+    kidsOf.get(k).push(it);
+  }
+  for (const list of kidsOf.values()) list.sort((a, b) => a.order - b.order || (a.createdAt < b.createdAt ? -1 : 1));
+  remOf = new Map();
+  for (const r of db.reminders) {
+    if (r.state !== 'pending' && r.state !== 'due') continue;
+    if (!remOf.has(r.itemId)) remOf.set(r.itemId, []);
+    remOf.get(r.itemId).push(r);
+  }
+  for (const list of remOf.values()) list.sort((a, b) => a.at < b.at ? -1 : 1);
+  buildView();
+}
+const kids = id => kidsOf.get(id) || [];
+const tasksIn = sectionId => kidsOf.get('S:' + sectionId) || [];
+const liveSections = () => db.sections.filter(s => !s.removed).sort((a, b) => a.order - b.order);
+const hasContent = d => d.items.some(i => !i.removed);
+
+/* ---- the day being shown ----
+   ui.day is the real today; ui.view is the day on screen. For a past day, each item's state is
+   worked out from the change log as it stood at the end of that day. */
+const mode = () => ui.view === ui.day ? 'today' : ui.view < ui.day ? 'past' : 'future';
+const eventDay = e => e.d || dayOf(new Date(e.t));
+const STATUS_OF = { done: 'done', strike: 'cancelled', reopen: 'open' };
+const byDayThenTime = (a, b) => a.d < b.d ? -1 : a.d > b.d ? 1 : a.e.t < b.e.t ? -1 : a.e.t > b.e.t ? 1 : 0;
+function replay(list) {                 // list: one item's events, oldest first
+  const s = { status: 'open', statusDay: null, statusAt: null, deferUntil: null };
+  for (const { e, d } of list) {
+    if (e.e === 'defer') { s.deferUntil = e.v || null; continue; }
+    const ns = STATUS_OF[e.e]; if (!ns || ns === s.status) continue;
+    s.status = ns; s.statusDay = ns === 'open' ? null : d; s.statusAt = ns === 'open' ? null : e.t;
+  }
+  return s;
+}
+function eventsFor(id, upto) {
+  return db.log.filter(e => e.id === id && (STATUS_OF[e.e] || e.e === 'defer')).map(e => ({ e, d: eventDay(e) })).filter(x => !upto || x.d <= upto).sort(byDayThenTime);
+}
+let asOf = null;                        // id -> state at the end of the past day on screen
+function buildView() {
+  asOf = null; if (mode() !== 'past') return;
+  const per = new Map();
+  for (const e of db.log) {
+    if (!(STATUS_OF[e.e] || e.e === 'defer')) continue;
+    const d = eventDay(e); if (d > ui.view) continue;
+    if (!per.has(e.id)) per.set(e.id, []);
+    per.get(e.id).push({ e, d });
+  }
+  asOf = new Map();
+  for (const [id, list] of per) asOf.set(id, replay(list.sort(byDayThenTime)));
+}
+const STILL_OPEN = Object.freeze({ status: 'open', statusDay: null, statusAt: null, deferUntil: null });
+const st = it => asOf ? (asOf.get(it.id) || STILL_OPEN) : it;
+const existed = it => it.createdDay <= ui.view;
+
+/* What appears on the DAP for the day on screen */
+const taskShown = it => { if (!existed(it)) return false; const s = st(it); return s.status === 'open' || s.statusDay === ui.view; };
+const stepShown = it => { if (!existed(it)) return false; const s = st(it); return s.status === 'open' || s.statusDay === ui.view || (s.status === 'done' && db.settings.showDoneSteps); };
+const isLater = it => { const s = st(it); return s.status === 'open' && !!s.deferUntil && s.deferUntil > ui.view; };
+const planStart = () => { let s = dayOf(new Date(db.meta.createdAt)); for (const it of db.items) if (it.createdDay && it.createdDay < s) s = it.createdDay; return s; };
+
+function ancestors(it) { const chain = []; let cur = it; while (cur) { chain.unshift(cur); cur = cur.parentId ? byId.get(cur.parentId) : null; } return chain; }
+function descendants(id) { const out = []; const walk = p => { for (const k of kids(p)) { out.push(k); walk(k.id); } }; walk(id); return out; }
+function logEvent(id, e, v, day) { const entry = { t: nowIso(), d: day || today(), id, e }; if (v !== undefined && v !== null) entry.v = v; db.log.push(entry); }
+
+/* =====================================================================
+   3. Saving: a data file in the chosen folder, plus a copy in the browser
+   ===================================================================== */
+const store = { state: 'none', parent: null, dir: null, file: null, lastSaved: null, error: null, writing: false, again: false, note: null, pendingFile: null };
+// state: none | unsupported | locked | connected | choice
+let saveTimer = null;
+
+function save() {
+  db.meta.savedAt = nowIso();
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(flush, 250);
+  syncSoon();
+}
+function mirrorNow() {
+  const text = JSON.stringify(db);
+  idbSet('mirror', text).catch(() => { });          // the browser's own copy; IndexedDB has room for a plan of any size
+  try { localStorage.setItem(MIRROR_KEY, text); return true; } catch (e) { try { localStorage.removeItem(MIRROR_KEY); } catch (e2) { } return false; }
+}
+function flush() { clearTimeout(saveTimer); saveTimer = null; if (db && sync.st) stampChanges(); mirrorNow(); writeFile(); scheduleAlarms(); }
+
+async function writeFile() {
+  if (store.state !== 'connected' || !store.file) { renderStatus(); return; }
+  if (store.writing) { store.again = true; return; }
+  store.writing = true;
+  try {
+    const w = await store.file.createWritable();
+    await w.write(JSON.stringify(db, null, 1));
+    await w.close();
+    store.lastSaved = new Date(); const hadError = !!store.error; store.error = null;
+    if (hadError) requestRender();
+  } catch (e) {
+    const first = !store.error; store.error = e && e.message ? e.message : String(e);
+    if (first) requestRender();
+  }
+  store.writing = false;
+  renderStatus();
+  if (store.again) { store.again = false; writeFile(); }
+}
+
+/* a tiny key-value store for remembering the chosen folder between visits */
+function idb() { return new Promise((ok, no) => { const q = indexedDB.open('dap-app', 1); q.onupgradeneeded = () => q.result.createObjectStore('kv'); q.onsuccess = () => ok(q.result); q.onerror = () => no(q.error); }); }
+async function idbGet(k) { const d = await idb(); return new Promise((ok, no) => { const r = d.transaction('kv').objectStore('kv').get(k); r.onsuccess = () => ok(r.result); r.onerror = () => no(r.error); }); }
+async function idbSet(k, v) { const d = await idb(); return new Promise((ok, no) => { const t = d.transaction('kv', 'readwrite'); t.objectStore('kv').put(v, k); t.oncomplete = () => ok(); t.onerror = () => no(t.error); }); }
+
+async function chooseFolder() {
+  let parent;
+  try { parent = await window.showDirectoryPicker({ id: 'dap-data', mode: 'readwrite' }); } catch (e) { return; }  // cancelled
+  await connect(parent, true);
+}
+
+async function connect(parent, fresh) {
+  store.note = null;
+  let dir, file, text;
+  try {
+    dir = parent.name === DATA_DIR ? parent : await parent.getDirectoryHandle(DATA_DIR, { create: true });
+    file = await dir.getFileHandle(DATA_FILE, { create: true });
+    text = await (await file.getFile()).text();
+  } catch (e) {
+    store.state = 'none';
+    store.note = 'The data folder could not be opened (' + (e.message || e.name) + '). Choose it again.';
+    render(); return;
+  }
+  let fromFile = null;
+  if (text.trim()) {
+    try { fromFile = JSON.parse(text); } catch (e) { fromFile = undefined; }
+    if (!fromFile || fromFile.app !== APP) {
+      store.state = 'none';
+      store.note = 'The file ' + DATA_FILE + ' in that folder could not be read as a plan, so it was left untouched. Choose another folder, or restore a copy from the backups folder.';
+      render(); return;
+    }
+  }
+  store.parent = parent; store.dir = dir; store.file = file;
+  if (fromFile && fromFile.schema !== SCHEMA) await keepCopyOf(JSON.parse(text), 'before-update');
+  try { await idbSet('parent', parent); } catch (e) { /* the folder will be asked for again next time */ }
+
+  if (fromFile) {
+    const sameplan = fromFile.meta && fromFile.meta.id === db.meta.id;
+    if (!sameplan && hasContent(db) && hasContent(fromFile)) {   // two different plans: ask
+      store.pendingFile = fromFile; store.state = 'choice'; render(); return;
+    }
+    const browserIsNewer = sameplan && db.meta.savedAt > fromFile.meta.savedAt;
+    if (!browserIsNewer && (sameplan || hasContent(fromFile) || !hasContent(db))) db = tidy(fromFile);
+  }
+  await finishConnect();
+}
+
+async function finishConnect() {
+  store.state = 'connected'; store.pendingFile = null; store.error = null;
+  undoStack.length = 0; redoStack.length = 0; stampReset();
+  await backupToday();
+  mirrorNow();
+  await writeFile();
+  render();
+}
+
+async function backupToday() {      // one dated copy per day, taken before the day's first change
+  if (!store.dir) return;
+  try {
+    const b = await store.dir.getDirectoryHandle(BACKUP_DIR, { create: true });
+    const name = `dap-data ${today()}.json`;
+    let exists = true;
+    try { await b.getFileHandle(name); } catch (e) { exists = false; }
+    if (!exists && hasContent(db)) {
+      const w = await (await b.getFileHandle(name, { create: true })).createWritable();
+      await w.write(JSON.stringify(db, null, 1)); await w.close();
+    }
+    const names = [];
+    for await (const [n, h] of b.entries()) if (h.kind === 'file' && /^dap-data \d{4}-\d{2}-\d{2}\.json$/.test(n)) names.push(n);
+    names.sort();
+    while (names.length > BACKUPS_KEPT) await b.removeEntry(names.shift());
+  } catch (e) { /* a missed backup must never block the plan */ }
+}
+
+async function keepCopyOf(obj, label) {   // used before one plan replaces another
+  try {
+    const b = await store.dir.getDirectoryHandle(BACKUP_DIR, { create: true });
+    const stamp = nowIso().replace(/[:.]/g, '-');
+    const w = await (await b.getFileHandle(`${label} ${stamp}.json`, { create: true })).createWritable();
+    await w.write(JSON.stringify(obj, null, 1)); await w.close();
+  } catch (e) { }
+}
+
+function downloadCopy() {
+  flush();
+  const blob = new Blob([JSON.stringify(db, null, 1)], { type: 'application/json' }), name = `dap-data copy ${today()}.json`;
+  if (NATIVE) shareFile(blob, name).catch(e => { ui.importError = 'The copy could not be shared (' + (e.message || e) + ').'; render(); });
+  else downloadBlob(blob, name);
+}
+
+/* =====================================================================
+   4. Actions
+   ===================================================================== */
+const ui = { day: today(), view: today(), q: '', printing: false, menuId: null, remError: null, ho: null, drawerId: null, confirmRemove: null, dialog: null, refocus: null, importDb: null, importError: null, second: false };
+const undoStack = [], redoStack = [];
+
+function pushUndo(snapshot) { undoStack.push(snapshot || JSON.stringify(db)); if (undoStack.length > 60) undoStack.shift(); redoStack.length = 0; }      // a fresh change ends the chance to redo
+function change(fn, opts) { pushUndo(); fn(); save(); if (opts && opts.defer) requestRender(); else render(); }
+function restore(json) { db = JSON.parse(json); ui.menuId = null; ui.confirmRemove = null; save(); render(); }
+function undo() { if (!undoStack.length) return; redoStack.push(JSON.stringify(db)); restore(undoStack.pop()); }
+function redo() { if (!redoStack.length) return; undoStack.push(JSON.stringify(db)); restore(redoStack.pop()); }
+
+function nextOrder(key) { let m = -1; for (const it of db.items) if ((it.parentId || 'S:' + it.sectionId) === key && it.order > m) m = it.order; return m + 1; }
+function makeItem(parentId, sectionId, title, deferUntil) {
+  const t = nowIso();
+  const it = { id: uid(), parentId: parentId || null, sectionId: parentId ? null : sectionId, series: null, no: null, title, note: '', status: 'open', statusAt: null, statusDay: null,
+    order: nextOrder(parentId || 'S:' + sectionId), createdAt: t, createdDay: today(), updatedAt: t, deferUntil: deferUntil || null, hoHeading: '', hoText: '', removed: false };
+  if (!parentId) {
+    const sec = db.sections.find(s => s.id === sectionId);
+    it.series = SERIES[sec ? sec.kind : 'work'] || 'T';
+    it.no = db.meta.next[it.series]++;
+  }
+  db.items.push(it); logEvent(it.id, 'add');
+  if (deferUntil) logEvent(it.id, 'defer', deferUntil);
+  return it;
+}
+/* Sets: a name (or a pattern) and the items to add beneath anything given that name.
+   'task' sets add sub-tasks to a new task; 'step' sets add smaller steps to a new sub-task.
+   A pattern is a regular expression, matched ignoring capitals. The first matching set is used. */
+function validPattern(text) { try { new RegExp(text, 'i'); return true; } catch (e) { return false; } }
+function findSet(kind, title) {
+  for (const s of db.sets) {
+    if (s.for !== kind) continue;
+    const n = s.name.trim(); if (!n || !s.steps.length) continue;
+    if (s.regex) { try { if (new RegExp(n, 'i').test(title)) return s; } catch (e) { /* a broken pattern matches nothing */ } }
+    else if (n.toLowerCase() === title.toLowerCase()) return s;
+  }
+  return null;
+}
+function makeStepWithSet(parentId, title) {
+  const step = makeItem(parentId, null, title);
+  const set = findSet('step', title);
+  if (set) for (const name of set.steps) makeItem(step.id, null, name);
+  return step;
+}
+function addTask(sectionId, title, opts) {      // on a day ahead, the new task is scheduled for that day
+  const m = mode(); if (m === 'past') return;
+  change(() => {
+    const task = makeItem(null, sectionId, title, m === 'future' ? ui.view : null);
+    const set = findSet('task', title);
+    if (set) for (const name of set.steps) makeStepWithSet(task.id, name);
+  }, opts);
+}
+function addStep(parentId, title, opts) {
+  if (mode() !== 'today') return;
+  change(() => makeStepWithSet(parentId, title), opts);
+}
+function setStatus(id, status) {
+  const it = byId.get(id), m = mode(); if (!it || m === 'future' || st(it).status === status) return;
+  const ev = status === 'done' ? 'done' : status === 'cancelled' ? 'strike' : 'reopen';
+  change(() => {
+    it.updatedAt = nowIso();
+    if (m === 'today') {
+      it.status = status;
+      it.statusAt = status === 'open' ? null : it.updatedAt;
+      it.statusDay = status === 'open' ? null : today();
+      logEvent(id, ev);
+    } else {                            // on a past day: record it against that day, then work out where the item stands now
+      logEvent(id, ev, undefined, ui.view);
+      const now = replay(eventsFor(id));
+      it.status = now.status; it.statusDay = now.statusDay; it.statusAt = now.statusAt;
+    }
+  });
+}
+function setDefer(id, day) {            // move to a later day, or back to today with day = null
+  const it = byId.get(id); if (!it || mode() !== 'today') return;
+  if (day && day <= ui.day) day = null;
+  if ((it.deferUntil || null) === day) return;
+  change(() => { it.deferUntil = day; it.updatedAt = nowIso(); logEvent(id, 'defer', day); });
+}
+function removeItem(id) {
+  const it = byId.get(id); if (!it || mode() !== 'today') return;
+  change(() => {
+    const t = nowIso();
+    for (const x of [it, ...descendants(id)]) { x.removed = true; x.updatedAt = t; }
+    logEvent(id, 'remove');
+    ui.confirmRemove = null;
+    if (ui.drawerId && (ui.drawerId === id || !db.items.some(x => x.id === ui.drawerId && !x.removed))) ui.drawerId = it.parentId || null;
+  });
+}
+function moveTask(id, sectionId, beforeId) {
+  const it = byId.get(id); if (!it || it.parentId || mode() !== 'today') return;
+  change(() => {
+    const list = tasksIn(sectionId).filter(x => x.id !== id);
+    let at = beforeId ? list.findIndex(x => x.id === beforeId) : -1; if (at < 0) at = list.length;
+    list.splice(at, 0, it);
+    const t = nowIso();
+    if (it.sectionId !== sectionId) { it.sectionId = sectionId; logEvent(id, 'move', sectionId); }
+    list.forEach((x, i) => { if (x.order !== i) { x.order = i; x.updatedAt = t; } });
+    it.updatedAt = t;
+  });
+}
+function moveStep(id, parentId, beforeId) {      // put a sub-task under another task (or reorder it within its own)
+  const it = byId.get(id), parent = byId.get(parentId);
+  if (!it || !parent || !it.parentId || parent.parentId || mode() !== 'today') return;
+  if (it.parentId === parentId && !beforeId && kids(parentId)[kids(parentId).length - 1] === it) return;
+  change(() => {
+    const list = kids(parentId).filter(x => x.id !== id);
+    let at = beforeId ? list.findIndex(x => x.id === beforeId) : -1; if (at < 0) at = list.length;
+    list.splice(at, 0, it);
+    const t = nowIso();
+    if (it.parentId !== parentId) { it.parentId = parentId; logEvent(id, 'move', parentId); }
+    list.forEach((x, i) => { if (x.order !== i) { x.order = i; x.updatedAt = t; } });
+    it.updatedAt = t;
+  });
+}
+function promoteStep(id, sectionId) {            // a sub-task becomes a task of its own, at the end of a section
+  const it = byId.get(id), sec = db.sections.find(x => x.id === sectionId && !x.removed);
+  if (!it || !sec || !it.parentId || mode() !== 'today') return;
+  change(() => {
+    const hadSteps = kids(id).length > 0;
+    it.parentId = null; it.sectionId = sectionId;
+    const series = SERIES[sec.kind] || 'T';
+    if (!(it.no && it.series === series)) { it.series = series; it.no = db.meta.next[series]++; }      // a former task returning to its own kind of section gets its old ID back
+    it.order = nextOrder('S:' + sectionId); it.updatedAt = nowIso();
+    logEvent(id, 'promote', sectionId);
+    if (!hadSteps) { const set = findSet('task', it.title); if (set) for (const name of set.steps) makeStepWithSet(id, name); }
+  });
+}
+function demoteTask(id, parentId, beforeId) {     // a task becomes a sub-task of another task; its own sub-tasks go with it
+  const it = byId.get(id), parent = byId.get(parentId);
+  if (!it || !parent || it.parentId || parent.parentId || id === parentId || mode() !== 'today') return;
+  change(() => {
+    const list = kids(parentId).filter(x => x.id !== id);
+    let at = beforeId ? list.findIndex(x => x.id === beforeId) : -1; if (at < 0) at = list.length;
+    list.splice(at, 0, it);
+    const t = nowIso();
+    it.parentId = parentId; it.sectionId = null; it.updatedAt = t;      // its permanent ID stays on record, in case it is made a task again
+    list.forEach((x, i) => { if (x.order !== i || x === it) { x.order = i; x.updatedAt = t; } });
+    logEvent(id, 'demote', parentId);
+  });
+}
+function nudgeTask(id, dir) {       // Alt + arrow keys: swap places with the neighbour shown above or below
+  const it = byId.get(id); if (!it || it.parentId || mode() !== 'today') return;
+  const shown = tasksIn(it.sectionId).filter(x => taskShown(x) && !isLater(x)).sort(urgentFirst);
+  const i = shown.findIndex(x => x.id === id), j = i + dir;
+  if (i < 0 || j < 0 || j >= shown.length || !!shown[j].urgent !== !!it.urgent) return;      // urgent tasks stay above the rest
+  ui.refocus = `.row[data-id="${id}"] .title`;
+  change(() => { const o = it.order, t = nowIso(); it.order = shown[j].order; shown[j].order = o; it.updatedAt = shown[j].updatedAt = t; });
+}
+const urgentFirst = (a, b) => (b.urgent ? 1 : 0) - (a.urgent ? 1 : 0);
+function setUrgent(id, on) {
+  const it = byId.get(id); if (!it || it.parentId || mode() !== 'today') return;
+  const v = on === undefined ? !it.urgent : !!on; if (!!it.urgent === v) return;
+  change(() => { it.urgent = v; it.updatedAt = nowIso(); logEvent(id, v ? 'urgent' : 'not-urgent'); });
+}
+
+/* ---- search: every word typed must appear somewhere in the task, its permanent ID, notes, handover status or sub-tasks ---- */
+const qTerms = () => ui.q.trim().toLowerCase().split(/\s+/).filter(Boolean);
+const itemText = it => [it.title, it.note, it.hoText || ''].join(' ').toLowerCase();
+function taskText(t) { let x = taskCode(t).toLowerCase() + ' ' + itemText(t); for (const d of descendants(t.id)) x += ' ' + itemText(d); return x; }
+let searchTerms = null;                 // the words being searched for, while a search is on
+const hitTask = t => !searchTerms || searchTerms.every(w => taskText(t).includes(w));
+const anyHit = text => !!searchTerms && searchTerms.some(w => String(text || '').toLowerCase().includes(w));
+
+/* ---- printing ---- */
+function doPrint() {
+  ui.printing = true; document.body.classList.toggle('no-personal', !db.settings.printPersonal); render();
+  setTimeout(() => { window.print(); endPrint(); }, 60);       // the browser's print window holds the page until it is closed
+}
+function endPrint() {
+  if (!ui.printing) return;
+  ui.printing = false; document.body.classList.remove('no-personal'); render();
+}
+function printHtml() {
+  return `<div class="veil" data-veil><div class="dialog" role="dialog" aria-modal="true" aria-labelledby="pr-h">
+    <h2 id="pr-h">Print the DAP</h2>
+    <p>${esc(longDate(ui.view))}, on A4 portrait. Buttons and Add boxes are left out, and every section is printed open.</p>
+    <label class="check"><input type="checkbox" id="pr-personal" ${db.settings.printPersonal ? 'checked' : ''}><span>Include the Personal section</span></label>
+    <div class="foot"><button class="btn" data-act="close-dialog">Cancel</button><button class="btn primary" data-act="print-go">Print</button></div>
+  </div></div>`;
+}
+
+function addSection() {             // a new section goes after the last ordinary one, ahead of any permanent sections that follow
+  if (mode() !== 'today') return;
+  change(() => {
+    const t = nowIso(), list = liveSections();
+    let at = -1; list.forEach((x, i) => { if (x.kind === 'work') at = i; });
+    const s = { id: uid(), name: '', kind: 'work', order: 0, removed: false, createdAt: t, updatedAt: t };
+    db.sections.push(s); list.splice(at + 1, 0, s);
+    list.forEach((x, n) => { if (x.order !== n || x === s) { x.order = n; x.updatedAt = t; } });
+    ui.refocus = `.sname[data-sid="${s.id}"]`;
+  });
+}
+function nudgeSection(sid, dir) {
+  if (mode() !== 'today') return;
+  const list = liveSections(); const i = list.findIndex(s => s.id === sid), j = i + dir;
+  if (i < 0 || j < 0 || j >= list.length) return;
+  change(() => { [list[i], list[j]] = [list[j], list[i]]; const t = nowIso(); list.forEach((s, n) => { if (s.order !== n) { s.order = n; s.updatedAt = t; } }); });
+}
+function removeSection(sid) {
+  const s = db.sections.find(x => x.id === sid);
+  if (!s || s.kind !== 'work' || mode() !== 'today' || tasksIn(sid).some(taskShown)) return;
+  change(() => { s.removed = true; s.updatedAt = nowIso(); });
+}
+/* ---- handover notes ----
+   Built for any period chosen at the time. Included: every task outside Personal that was still open at the end
+   of the period, or was ticked or struck out during it. Each task is reported under its handover heading; without
+   one, Procurement Cases tasks go together under "Indents/Approvals" and any other task gets a heading of its own.
+   Each task is reported as Completed and Pending. A task's own handover status is used as written, with lines placed
+   under "Completed:" and "Pending:" going under those sub-headings; otherwise both are drafted from its sub-tasks. */
+const HO_PROCUREMENT_HEADING = 'Indents/Approvals';
+const dashDate = day => { const [y, m, d] = day.split('-'); return `${d}-${m}-${y.slice(2)}`; };
+const sentence = t => { t = String(t).trim(); return !t || /[.!?:;)]$/.test(t) ? t : t + '.'; };
+const stateAt = (it, day) => day >= ui.day ? it : replay(eventsFor(it.id, day));       // how an item stood at the end of a day
+
+function draftReport(t, s, to) {     // drafted from the DAP: sub-task by sub-task, what is completed and what is pending
+  const r = { general: [], completed: [], pending: [] };
+  if (t.note.trim()) r.general.push(sentence(oneLine(t.note)));
+  for (const k of kids(t.id)) {
+    if (k.createdDay > to) continue;
+    const ks = stateAt(k, to), note = k.note.trim() ? ' ' + sentence(oneLine(k.note)) : '';
+    if (ks.status === 'done') { r.completed.push(sentence(k.title) + note); continue; }           // no dates on completed sub-tasks (AB's choice)
+    if (ks.status === 'cancelled') { r.completed.push(`${k.title}: not required.${note}`); continue; }
+    const done = [], pending = [];          // a part-done sub-task is split: its ticked smaller steps under Completed, the rest under Pending
+    for (const x of kids(k.id)) { if (x.createdDay > to) continue; const xs = stateAt(x, to); if (xs.status === 'done') done.push(x.title); else if (xs.status === 'open') pending.push(x.title); }
+    if (done.length) r.completed.push(`${k.title}: ${done.join(', ')}.`);
+    let line = pending.length ? `${k.title}: ${pending.join(', ')}` : k.title;
+    if (ks.deferUntil && ks.deferUntil > to) line += `, to be taken up from ${shortDate(ks.deferUntil)}`;
+    r.pending.push(line + '.' + note);
+  }
+  if (s.status === 'done') r.completed.push('Completed.');                              // no completion date (AB's choice)
+  else if (s.status === 'cancelled') r.general.push('No longer required.');                  // no date or mention of striking out (AB's choice)
+  else if (s.deferUntil && s.deferUntil > to) r.pending.push(`To be taken up from ${shortDate(s.deferUntil)}.`);
+  else if (!r.completed.length && !r.pending.length) r.pending.push('No progress recorded yet.');
+  return r;
+}
+function parseOwn(text) {            // a written status: lines after "Completed:" or "Pending:" go under that sub-heading
+  const r = { general: [], completed: [], pending: [] }; let cur = r.general;
+  for (const raw of text.split('\n')) {
+    const line = raw.trim(); if (!line) continue;
+    const m = line.match(/^(completed|pending)\s*(?::\s*(.*))?$/i);       // "Completed", "Completed:" or "Completed: text"; not "Pending approval"
+    if (m) { cur = r[m[1].toLowerCase()]; if (m[2] && m[2].trim()) cur.push(m[2].trim()); continue; }
+    cur.push(line);
+  }
+  return r;
+}
+const taskReport = (t, s, to) => (t.hoText || '').trim() ? parseOwn(t.hoText) : draftReport(t, s, to);
+function reportText(r) {             // the same thing as text for the status box, ready to edit
+  const out = [...r.general];
+  if (r.completed.length) out.push('Completed:', ...r.completed);
+  if (r.pending.length) out.push('Pending:', ...r.pending);
+  return out.join('\n');
+}
+function handoverModel(from, to) {    // -> [{ heading, shared, entries: [{ title, general, completed, pending }] }]
+  const groups = [], byKey = new Map();
+  for (const sec of liveSections()) {
+    if (sec.kind === 'personal') continue;
+    for (const t of tasksIn(sec.id)) {
+      if (t.createdDay > to) continue;
+      const s = stateAt(t, to);
+      if (s.status !== 'open' && !(s.statusDay >= from && s.statusDay <= to)) continue;       // closed before the period began
+      const named = (t.hoHeading || '').trim(), procurement = sec.kind === 'procurement';
+      const alone = !named && !procurement;
+      const heading = named || (procurement ? HO_PROCUREMENT_HEADING : t.title);
+      const key = alone ? 'task:' + t.id : 'heading:' + heading.toLowerCase();
+      let g = byKey.get(key);
+      if (!g) { g = { heading, shared: !alone, entries: [], lead: heading.toLowerCase() === HO_PROCUREMENT_HEADING.toLowerCase() }; byKey.set(key, g); groups.push(g); }
+      g.entries.push(Object.assign({ title: t.title }, taskReport(t, s, to)));     // under a shared heading each task gets its own bold sub-heading
+    }
+  }
+  return groups.sort((a, b) => (b.lead ? 1 : 0) - (a.lead ? 1 : 0));        // Indents/Approvals first, as in the paper notes; the rest in DAP order
+}
+
+/* The Word file is written here directly: a .docx is a zip of a few XML files. Format follows the paper notes:
+   A4, Calibri, centred 16 pt bold underlined title, 12 pt bold underlined headings, numbered 12 pt points. */
+const xmlEsc = t => String(t).replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F￾￿]/g, '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+function docxParts(groups) {
+  const W = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"', HEAD = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n';
+  const run = (text, props) => `<w:r><w:rPr>${props}</w:rPr><w:t xml:space="preserve">${xmlEsc(text)}</w:t></w:r>`;
+  const blank = '<w:p><w:pPr><w:spacing w:after="0" w:line="276" w:lineRule="auto"/><w:rPr><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr></w:pPr></w:p>';
+  let body = `<w:p><w:pPr><w:spacing w:after="0" w:line="240" w:lineRule="auto"/><w:jc w:val="center"/></w:pPr>${run('Handing/Taking Over Notes', '<w:b/><w:sz w:val="32"/><w:szCs w:val="32"/><w:u w:val="single"/>')}</w:p>${blank}${blank}`;
+  const SZ = '<w:sz w:val="24"/><w:szCs w:val="24"/>';
+  let lists = 0;                       // every numbered list is its own numbering instance, so each one starts at 1
+  const para = (text, o) => `<w:p><w:pPr>${o.num ? `<w:pStyle w:val="ListParagraph"/><w:numPr><w:ilvl w:val="0"/><w:numId w:val="${o.num}"/></w:numPr>` : ''}${o.keep ? '<w:keepNext/>' : ''}<w:spacing w:before="${o.before || 0}" w:after="${o.after || 0}" w:line="276" w:lineRule="auto"/><w:ind w:left="${o.left || 0}"${o.num ? ' w:hanging="360"' : ''}/></w:pPr>${run(text, o.props || SZ)}</w:p>`;
+  const list = (items, left) => { if (!items.length) return ''; const num = ++lists; return items.map(x => para(x, { num, left })).join(''); };
+  groups.forEach(g => {
+    body += para(g.heading, { keep: true, after: 120, props: '<w:b/><w:u w:val="single"/>' + SZ });
+    g.entries.forEach((e, j) => {
+      const at = g.shared ? 360 : 0;   // under a shared heading everything sits one step further in
+      if (g.shared) body += para(`${j + 1}. ${e.title}`, { left: 360, keep: true, before: j ? 120 : 0, after: 40, props: '<w:b/>' + SZ });
+      body += list(e.general, at + 720);
+      if (e.completed.length) body += para('Completed', { left: at + 360, keep: true, before: 60, props: '<w:b/><w:i/>' + SZ }) + list(e.completed, at + 720);
+      if (e.pending.length) body += para('Pending', { left: at + 360, keep: true, before: 60, props: '<w:b/><w:i/>' + SZ }) + list(e.pending, at + 720);
+    });
+    body += blank;
+  });
+  const document = `${HEAD}<w:document ${W}><w:body>${body}<w:sectPr><w:pgSz w:w="11907" w:h="16839"/><w:pgMar w:top="990" w:right="477" w:bottom="994" w:left="540" w:header="720" w:footer="720" w:gutter="0"/></w:sectPr></w:body></w:document>`;
+  const styles = `${HEAD}<w:styles ${W}><w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Calibri" w:eastAsia="Calibri" w:hAnsi="Calibri" w:cs="Calibri"/><w:sz w:val="22"/><w:szCs w:val="22"/><w:lang w:val="en-US" w:eastAsia="en-US" w:bidi="ar-SA"/></w:rPr></w:rPrDefault><w:pPrDefault><w:pPr><w:spacing w:after="160" w:line="259" w:lineRule="auto"/></w:pPr></w:pPrDefault></w:docDefaults>`
+    + `<w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/><w:qFormat/></w:style>`
+    + `<w:style w:type="paragraph" w:styleId="ListParagraph"><w:name w:val="List Paragraph"/><w:basedOn w:val="Normal"/><w:uiPriority w:val="34"/><w:qFormat/><w:pPr><w:ind w:left="720"/><w:contextualSpacing/></w:pPr></w:style></w:styles>`;
+  // one list definition; each heading's list is its own numbering instance, so every list starts again at 1
+  const numbering = `${HEAD}<w:numbering ${W}><w:abstractNum w:abstractNumId="0"><w:multiLevelType w:val="singleLevel"/><w:lvl w:ilvl="0"><w:start w:val="1"/><w:numFmt w:val="decimal"/><w:lvlText w:val="%1."/><w:lvlJc w:val="left"/><w:pPr><w:ind w:left="720" w:hanging="360"/></w:pPr></w:lvl></w:abstractNum>`
+    + Array.from({ length: lists }, (_, i) => `<w:num w:numId="${i + 1}"><w:abstractNumId w:val="0"/><w:lvlOverride w:ilvl="0"><w:startOverride w:val="1"/></w:lvlOverride></w:num>`).join('') + `</w:numbering>`;
+  return [
+    ['[Content_Types].xml', `${HEAD}<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/><Override PartName="/word/numbering.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.numbering+xml"/></Types>`],
+    ['_rels/.rels', `${HEAD}<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>`],
+    ['word/_rels/document.xml.rels', `${HEAD}<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/numbering" Target="numbering.xml"/></Relationships>`],
+    ['word/document.xml', document], ['word/styles.xml', styles], ['word/numbering.xml', numbering]
+  ];
+}
+const CRC_TABLE = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+function crc32(bytes) { let c = 0xFFFFFFFF; for (let i = 0; i < bytes.length; i++) c = CRC_TABLE[(c ^ bytes[i]) & 0xFF] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
+function zipBlob(files, type) {       // files: [[name, text]]; stored without compression, which every zip reader accepts
+  const enc = new TextEncoder(), parts = [], central = []; let offset = 0;
+  const now = new Date(), time = (now.getHours() << 11) | (now.getMinutes() << 5) | (now.getSeconds() >> 1), date = ((now.getFullYear() - 1980) << 9) | ((now.getMonth() + 1) << 5) | now.getDate();
+  for (const [name, text] of files) {
+    const nm = enc.encode(name), data = enc.encode(text), crc = crc32(data);
+    const lh = new DataView(new ArrayBuffer(30));
+    lh.setUint32(0, 0x04034b50, true); lh.setUint16(4, 20, true); lh.setUint16(6, 0x0800, true); lh.setUint16(8, 0, true); lh.setUint16(10, time, true); lh.setUint16(12, date, true);
+    lh.setUint32(14, crc, true); lh.setUint32(18, data.length, true); lh.setUint32(22, data.length, true); lh.setUint16(26, nm.length, true); lh.setUint16(28, 0, true);
+    parts.push(new Uint8Array(lh.buffer), nm, data);
+    const ch = new DataView(new ArrayBuffer(46));
+    ch.setUint32(0, 0x02014b50, true); ch.setUint16(4, 20, true); ch.setUint16(6, 20, true); ch.setUint16(8, 0x0800, true); ch.setUint16(10, 0, true); ch.setUint16(12, time, true); ch.setUint16(14, date, true);
+    ch.setUint32(16, crc, true); ch.setUint32(20, data.length, true); ch.setUint32(24, data.length, true); ch.setUint16(28, nm.length, true); ch.setUint32(42, offset, true);
+    central.push(new Uint8Array(ch.buffer), nm);
+    offset += 30 + nm.length + data.length;
+  }
+  const size = central.reduce((n, x) => n + x.length, 0), end = new DataView(new ArrayBuffer(22));
+  end.setUint32(0, 0x06054b50, true); end.setUint16(8, files.length, true); end.setUint16(10, files.length, true); end.setUint32(12, size, true); end.setUint32(16, offset, true);
+  return new Blob([...parts, ...central, new Uint8Array(end.buffer)], { type });
+}
+const docxBlob = groups => zipBlob(docxParts(groups), 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+async function fileExists(dir, name) { try { await dir.getFileHandle(name); return true; } catch (e) { return false; } }
+const hoFileName = h => `${h.no}. Handover Notes ${dashDate(h.from)} to ${dashDate(h.to)}`;
+
+function handoverHtml() {
+  const h = ui.ho, groups = handoverModel(h.from, h.to);
+  const nTasks = groups.reduce((n, g) => n + g.entries.length, 0);
+  return `<div class="veil" data-veil><div class="dialog wide" role="dialog" aria-modal="true" aria-labelledby="ho-h">
+    <h2 id="ho-h">Handover notes</h2>
+    <p>Covers every task outside Personal that was still open at the end of the period, or was ticked or struck out during it. Each task shows what is Completed and what is Pending. Where you have written a task's handover status in its Details, that is used, with lines under \u201CCompleted:\u201D and \u201CPending:\u201D placed accordingly; otherwise both are drafted from its sub-tasks.</p>
+    <div class="horow">
+      <span>From</span><span class="pickwrap"><button class="btn" data-act="pick-date" title="Choose the first day">${shortDate(h.from)}</button><input type="date" data-change="ho-from" value="${h.from}" max="${h.to}" tabindex="-1" aria-label="First day of the period"></span>
+      <span>to</span><span class="pickwrap"><button class="btn" data-act="pick-date" title="Choose the last day">${shortDate(h.to)}</button><input type="date" data-change="ho-to" value="${h.to}" min="${h.from}" tabindex="-1" aria-label="Last day of the period"></span>
+      <span class="gap">Number</span><input type="number" class="hono" data-change="ho-no" min="1" step="1" value="${h.no}" aria-label="Number of these notes">
+    </div>
+    <p class="hofile">${esc(hoFileName(h))}.docx</p>
+    <div class="hoprev" tabindex="0" aria-label="Preview of the notes">${groups.length
+      ? `<p class="hot">Handing/Taking Over Notes</p>` + groups.map(g => `<p class="hoh">${esc(g.heading)}</p>` + g.entries.map((e, j) => {
+          const ol = items => items.length ? `<ol>${items.map(x => `<li>${esc(x)}</li>`).join('')}</ol>` : '';
+          const inner = ol(e.general) + (e.completed.length ? `<p class="hos">Completed</p>${ol(e.completed)}` : '') + (e.pending.length ? `<p class="hos">Pending</p>${ol(e.pending)}` : '');
+          return g.shared ? `<div class="hoe"><p class="hotk">${j + 1}. ${esc(e.title)}</p>${inner}</div>` : inner;
+        }).join('')).join('')
+      : `<p>Nothing to report for this period.</p>`}</div>
+    ${h.msg ? `<div class="notice" style="margin-top:12px"><p>${esc(h.msg)}</p></div>` : ''}
+    ${h.err ? `<p class="err">${esc(h.err)}</p>` : ''}
+    <div class="foot"><span class="hosum">${plural(groups.length, 'heading')}, ${plural(nTasks, 'task')}</span><button class="btn" data-act="close-dialog">Close</button><button class="btn primary" data-act="ho-create" ${groups.length ? '' : 'disabled'}>Create Word document</button></div>
+  </div></div>`;
+}
+
+/* ---- reminders ----
+   A reminder belongs to a task or sub-task and has a time. While the DAP is open, a check every few seconds
+   turns reminders whose time has come into "due": they show in a bar at the top until answered. */
+const REM_QUICK = [[10, '10 min'], [30, '30 min'], [60, '1 h'], [180, '3 h']];
+const REM_REPEAT_MS = 5 * 60000;
+const lastAlert = new Map();        // reminder id -> when its notification last went out
+const liveNotes = new Map();        // reminder id -> the notification now on screen
+let flashTimer = null, flashText = '', flashOn = false;
+const canNotify = () => 'Notification' in window;
+const remById = id => db.reminders.find(r => r.id === id);
+const dueList = () => db.reminders.filter(r => r.state === 'due').sort((a, b) => a.at < b.at ? -1 : 1);
+function remWhen(iso, long) {         // "14:30", "tomorrow 09:00", "Mon 12/10 09:00"
+  const d = new Date(iso), day = dayOf(d), now = today();
+  const dayText = day === now ? (long ? 'today ' : '') : day === addDays(now, 1) ? 'tomorrow ' : day === addDays(now, -1) ? 'yesterday ' : (long ? weekday(day) + ' ' : '') + dayMonth(day) + ' ';
+  return dayText + clockTime(d);
+}
+function sweepReminders() {          // bring every reminder's state up to date; true if anything changed
+  const now = Date.now(); let changed = false;
+  const live = new Map(); for (const it of db.items) if (!it.removed) live.set(it.id, it);
+  for (const r of db.reminders) {
+    if (r.state !== 'pending' && r.state !== 'due') continue;
+    const it = live.get(r.itemId);
+    if (!it || it.status !== 'open') { r.state = 'dismissed'; r.updatedAt = nowIso(); changed = true; continue; }     // ticked, struck or removed: nothing left to remind about
+    if (r.state === 'pending' && Date.parse(r.at) <= now) { r.state = 'due'; r.firedAt = nowIso(); r.updatedAt = r.firedAt; changed = true; }
+  }
+  return changed;
+}
+function addReminder(itemId, atMs) {
+  const it = byId.get(itemId); if (!it || it.status !== 'open' || mode() !== 'today') return;
+  ui.remError = null;
+  change(() => { const t = nowIso(); db.reminders.push({ id: uid(), itemId, at: new Date(atMs).toISOString(), state: 'pending', createdAt: t, firedAt: null, updatedAt: t }); });
+  if (canNotify() && Notification.permission === 'default' && db.settings.notify) { try { Notification.requestPermission().then(() => { if (ui.dialog === 'settings') render(); }); } catch (e) { } }
+}
+function answerReminder(id, how, minutes) {       // how: done | snooze | dismiss
+  const r = remById(id); if (!r) return;
+  clearDelivered(id);
+  change(() => {
+    const t = nowIso();
+    if (how === 'snooze') { r.at = new Date(Date.now() + minutes * 60000).toISOString(); r.state = 'pending'; r.firedAt = null; }
+    else if (how === 'done') {
+      const it = db.items.find(x => x.id === r.itemId && !x.removed);
+      if (it && it.status === 'open') { it.status = 'done'; it.statusAt = t; it.statusDay = today(); it.updatedAt = t; logEvent(it.id, 'done'); }
+      r.state = 'done';
+    } else r.state = 'dismissed';
+    r.updatedAt = t;
+  });
+}
+function notify(r) {
+  if (!canNotify() || Notification.permission !== 'granted' || !db.settings.notify) return;
+  const it = db.items.find(x => x.id === r.itemId); if (!it) return;
+  let top = it; while (top.parentId) { const up = db.items.find(x => x.id === top.parentId); if (!up) break; top = up; }
+  try {
+    const old = liveNotes.get(r.id); if (old) old.close();
+    const n = new Notification('DAP reminder: ' + it.title, { body: (top !== it ? 'Under ' + top.title + '. ' : '') + 'Due ' + remWhen(r.at, true) + '.', tag: 'dap-' + r.id, renotify: true, requireInteraction: true });
+    n.onclick = () => { try { window.focus(); } catch (e) { } n.close(); if (remById(r.id)) { ui.view = ui.day; ui.drawerId = r.itemId; render(); } };
+    liveNotes.set(r.id, n);
+  } catch (e) { }
+}
+function alertDue() {                // notifications (first time, then every 5 minutes), and the flashing title
+  const due = dueList(), now = Date.now();
+  for (const r of due) {
+    const last = lastAlert.get(r.id);
+    if (last === undefined || (db.settings.repeatReminders && now - last >= REM_REPEAT_MS)) { lastAlert.set(r.id, now); notify(r); }
+  }
+  for (const id of [...lastAlert.keys()]) if (!due.some(r => r.id === id)) { lastAlert.delete(id); const n = liveNotes.get(id); if (n) { try { n.close(); } catch (e) { } liveNotes.delete(id); } }
+  flashText = due.length === 1 ? 'Reminder due' : due.length + ' reminders due';
+  if (due.length && !flashTimer) flashTimer = setInterval(() => { flashOn = !flashOn; document.title = flashOn ? '\u25CF ' + flashText : 'Daily Action Plan'; }, 1000);
+  if (!due.length && flashTimer) { clearInterval(flashTimer); flashTimer = null; flashOn = false; document.title = 'Daily Action Plan'; }
+}
+function renderAlerts() {
+  const box = $('#alerts'); if (!box) return;
+  const due = (ui.second || store.state === 'locked' || !db) ? [] : dueList();
+  box.innerHTML = due.map(r => {
+    const it = db.items.find(x => x.id === r.itemId); if (!it) return '';
+    let top = it; while (top.parentId) { const up = db.items.find(x => x.id === top.parentId); if (!up) break; top = up; }
+    const late = Date.now() - Date.parse(r.at) > 90000;
+    return `<div class="duerow" data-rid="${r.id}">
+      <span class="due-when">${BELL}${late ? 'Was due ' : 'Reminder '}${esc(remWhen(r.at))}</span>
+      <button class="due-what" data-act="rem-open" data-rid="${r.id}" title="Show it on the DAP">${esc(it.title)}</button>
+      ${top !== it ? `<span class="due-under">under ${esc(top.title)}</span>` : ''}
+      <span class="due-acts">
+        <button class="btn primary" data-act="rem-done" data-rid="${r.id}">Tick as done</button>
+        <span class="lbl">Snooze</span>${REM_QUICK.map(([m, label]) => `<button class="btn" data-act="rem-snooze" data-rid="${r.id}" data-min="${m}">${label}</button>`).join('')}
+        <button class="btn" data-act="rem-dismiss" data-rid="${r.id}">Dismiss</button>
+      </span></div>`;
+  }).join('');
+  box.hidden = !due.length;
+}
+function reminderTick() {            // runs every few seconds
+  if (!db || ui.second || store.state === 'locked' || store.state === 'choice') return;
+  if (sweepReminders()) {
+    save();
+    const el = document.activeElement;
+    const busy = drag || (el && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName)));
+    if (busy) renderAlerts(); else render();        // never redraw the page under someone who is typing or dragging
+  }
+  alertDue();
+}
+function remBlockHtml(it) {          // in Details
+  const list = remOf.get(it.id) || [];
+  const next = new Date(Date.now() + 30 * 60000); next.setMinutes(next.getMinutes() < 30 ? 30 : 60, 0, 0);
+  const days = []; for (let i = 0; i < 21; i++) { const d = addDays(ui.day, i); days.push(`<option value="${d}">${i === 0 ? 'today' : i === 1 ? 'tomorrow' : weekday(d) + ' ' + dayMonth(d)}</option>`); }
+  return `<div class="fld"><span class="lbl">Remind me</span>
+    ${list.length ? `<ul class="remlist">${list.map(r => `<li class="${r.state}"><span>${BELL}${r.state === 'due' ? 'Due now, since ' : ''}${esc(remWhen(r.at, true))}</span><button class="btn quiet" data-act="rem-remove" data-rid="${r.id}">Remove</button></li>`).join('')}</ul>` : ''}
+    <div class="state"><span class="pre">in</span>${REM_QUICK.map(([m, label]) => `<button class="btn" data-act="remind" data-id="${it.id}" data-min="${m}">${label}</button>`).join('')}</div>
+    <div class="state"><span class="pre">at</span><input type="time" data-rem-time value="${clockTime(next)}" aria-label="Time of the reminder"><select data-rem-day aria-label="Day of the reminder">${days.join('')}</select><button class="btn" data-act="rem-set" data-id="${it.id}">Set</button></div>
+    ${ui.remError ? `<p class="err">${esc(ui.remError)}</p>` : ''}
+  </div>`;
+}
+
+function goDay(day) {
+  if (!isDay(day) || day === ui.view) return;
+  ui.view = day; ui.drawerId = null; ui.menuId = null; ui.confirmRemove = null; ui.refocus = '.daybtn.on';
+  render();
+}
+
+/* =====================================================================
+   5. Drawing the page
+   ===================================================================== */
+let rendering = false, pointerDown = false, pendingRender = false;
+
+function requestRender() {            // used when a change comes from leaving a field, so a click in progress is not lost
+  if (rendering) return;
+  if (pointerDown) pendingRender = true; else render();
+}
+
+function render() {
+  rendering = true; pendingRender = false;
+  if (db && !ui.second && store.state !== 'locked' && sweepReminders()) save();
+  buildIndex();
+  if (ui.drawerId && !byId.has(ui.drawerId)) ui.drawerId = null;
+  const keep = focusKey();
+  const drawerScroll = $('.drawer-body') ? $('.drawer-body').scrollTop : 0;
+  const y = window.scrollY;
+  const app = $('#app');
+  if (ui.second) app.innerHTML = gateSecond();
+  else if (store.state === 'locked') app.innerHTML = gateLocked();
+  else app.innerHTML = pageHtml();
+  document.body.classList.toggle('drawer-open', !!ui.drawerId && store.state !== 'locked' && !ui.second && !ui.printing);
+  document.body.classList.toggle('compact', !!(db && db.settings.compact));
+  if ($('.drawer-body')) $('.drawer-body').scrollTop = drawerScroll;
+  window.scrollTo(0, y);
+  rendering = false;
+  if (ui.refocus) { const el = $(ui.refocus); ui.refocus = null; if (el) { el.focus(); caretToEnd(el); } }
+  else if (keep) restoreFocus(keep);
+  renderStatus();
+  renderAlerts();
+  if (db && !ui.second && store.state !== 'locked') alertDue();
+}
+
+function focusKey() {
+  const el = document.activeElement; if (!el || el === document.body) return null;
+  const where = el.closest('.drawer') ? '.drawer ' : el.closest('.dialog') ? '.dialog ' : '.sheet ';
+  let sel = null;
+  if (el.id === 'q') return { sel: '#q', start: el.selectionStart, end: el.selectionEnd, value: null };
+  if (el.dataset.act === 'toggle' && el.dataset.id) sel = `[data-act="toggle"][data-id="${el.dataset.id}"]`;
+  else if (el.dataset.edit) sel = `[data-edit="${el.dataset.edit}"]` + (el.dataset.id ? `[data-id="${el.dataset.id}"]` : el.dataset.sid ? `[data-sid="${el.dataset.sid}"]` : el.dataset.setid ? `[data-setid="${el.dataset.setid}"]` : '');
+  else if (el.dataset.add === 'task') sel = `[data-add="task"][data-section="${el.dataset.section}"]`;
+  else if (el.dataset.add === 'step') sel = `[data-add="step"][data-parent="${el.dataset.parent}"]`;
+  if (!sel) return null;
+  return { sel: where + sel, start: el.selectionStart, end: el.selectionEnd, value: el.dataset.add ? el.value : null };
+}
+function restoreFocus(k) {
+  const el = $(k.sel); if (!el) return;
+  if (k.value != null) el.value = k.value;
+  el.focus();
+  if (typeof k.start === 'number' && el.setSelectionRange) { try { el.setSelectionRange(k.start, k.end); } catch (e) { } }
+  else caretToEnd(el);
+}
+function caretToEnd(el) {
+  if (!el.isContentEditable) return;
+  const r = document.createRange(); r.selectNodeContents(el); r.collapse(false);
+  const s = getSelection(); s.removeAllRanges(); s.addRange(r);
+}
+
+function pageHtml() {
+  const m = mode(), edit = m === 'today';
+  const sections = liveSections();
+  const terms = ui.printing ? [] : qTerms();
+  searchTerms = terms.length ? terms : null;
+  const count = { work: 0, personal: 0, procurement: 0 }, onScreen = new Set();
+  let workTab = 0, open = 0, personal = 0, done = 0, struck = 0, later = 0;
+  const body = sections.map((s, i) => {
+    const all = tasksIn(s.id).filter(taskShown);
+    const active = all.filter(t => !isLater(t)).sort(urgentFirst);           // urgent tasks first, the rest in their order
+    const waiting = all.filter(isLater).sort((a, b) => st(a).deferUntil < st(b).deferUntil ? -1 : st(a).deferUntil > st(b).deferUntil ? 1 : a.order - b.order);
+    const nOpen = active.filter(t => st(t).status === 'open').length;
+    if (s.kind === 'personal') personal += nOpen; else open += nOpen;
+    done += active.filter(t => st(t).status === 'done').length; struck += active.filter(t => st(t).status === 'cancelled').length; later += waiting.length;
+    const numbered = active.map(t => [t, ++count[s.kind]]);                     // numbers are fixed before any search or folding, so they never shift
+    const fixed = s.kind !== 'work';
+    const tab = fixed ? SERIES[s.kind] : ++workTab;
+    const label = s.name || 'this section';
+    let rows = numbered, wait = waiting;
+    if (searchTerms) { rows = numbered.filter(([t]) => hitTask(t)); wait = waiting.filter(hitTask); if (!rows.length && !wait.length) return ''; }
+    const folded = !!s.collapsed && !ui.printing && !searchTerms;
+    if (!folded) { for (const [t] of rows) onScreen.add(t.id); for (const t of wait) onScreen.add(t.id); }
+    return `<section class="section ${s.kind}${folded ? ' folded' : ''}" data-sid="${s.id}">
+      <div class="shead">
+        <button class="fold" data-act="fold" data-sid="${s.id}" aria-expanded="${!folded}" aria-label="${folded ? 'Open' : 'Fold'} ${esc(label)}" title="${folded ? 'Open this section' : 'Fold this section away'}">${folded ? '&#9656;' : '&#9662;'}</button>
+        <span class="stab${fixed ? ' fixed' : ''}">${tab}</span>
+        ${fixed || !edit
+          ? `<span class="sname">${esc(s.name || 'Unnamed section')}</span>`
+          : `<span class="sname" contenteditable="plaintext-only" spellcheck="false" data-edit="name" data-sid="${s.id}" aria-label="Section name">${esc(s.name)}</span>`}
+        <span class="scount">${all.length ? plural(nOpen, 'open task', 'open tasks') + (waiting.length ? `, ${waiting.length} for later` : '') : ''}${folded ? (all.length ? ', folded' : 'Folded') : ''}</span>
+        ${edit ? `<span class="sact">
+          <button class="btn quiet" data-act="sec-up" data-sid="${s.id}" ${i === 0 ? 'disabled' : ''} aria-label="Move section up" title="Move section up">&#8593;</button>
+          <button class="btn quiet" data-act="sec-down" data-sid="${s.id}" ${i === sections.length - 1 ? 'disabled' : ''} aria-label="Move section down" title="Move section down">&#8595;</button>
+          ${fixed ? '' : `<button class="btn quiet" data-act="sec-remove" data-sid="${s.id}" ${all.length ? 'disabled' : ''} title="${all.length ? 'Move its tasks out first' : 'Remove this empty section'}">Remove</button>`}
+        </span>` : ''}
+      </div>
+      ${folded ? '' : `
+      ${rows.map(([t, n]) => rowHtml(t, n)).join('')}
+      ${wait.length ? `<div class="latercap">Later</div>${wait.map(t => rowHtml(t, null)).join('')}` : ''}
+      ${searchTerms ? '' : m === 'past'
+        ? (all.length ? '' : `<p class="none">Nothing here that day.</p>`)
+        : `<div class="addwrap"><input class="addtask" data-add="task" data-section="${s.id}" placeholder="${m === 'future' ? `Add a task for ${shortDate(ui.view)}, then press Enter` : 'Add a task, then press Enter'}" aria-label="Add a task to ${esc(label)}" autocomplete="off">${edit ? `<div class="dropzone">Drop here to make it a task in ${esc(s.name || 'this section')}</div>` : ''}</div>`}`}
+    </section>`;
+  }).join('');
+
+  const counts = [plural(open, 'open task', 'open tasks')];
+  if (personal) counts.push(`${personal} personal`);
+  if (done) counts.push(`${done} ticked`);
+  if (struck) counts.push(`${struck} struck out`);
+  if (later) counts.push(`${later} for later`);
+
+  return `<div class="wrap"><main class="sheet ${m}">
+    <header class="top">
+      <div>
+        <h1><span>Daily Action Plan</span><span class="date">${shortDate(ui.view)}</span></h1>
+        <p class="sub">${esc(longDate(ui.view))}. ${counts.join(', ')}.</p>
+      </div>
+      <div class="tools">
+        <div class="btns">
+          <input id="q" type="search" class="qbox" value="${esc(ui.q)}" placeholder="${NATIVE ? 'Search tasks' : 'Search tasks  ( / )'}" aria-label="Search tasks" autocomplete="off" spellcheck="false">
+          <button class="btn" data-act="undo" ${undoStack.length ? '' : 'disabled'} title="Undo (Ctrl + Z)">Undo</button>
+          <button class="btn" data-act="redo" ${redoStack.length ? '' : 'disabled'} title="Redo (Ctrl + Y)">Redo</button>
+          <button class="btn" data-act="handover">Handover notes</button>
+          ${NATIVE ? '' : '<button class="btn" data-act="print">Print</button>'}
+          <button class="btn" data-act="settings">Settings</button>
+        </div>
+        <div id="savestate"></div>
+        <div id="syncstate" hidden></div>
+      </div>
+    </header>
+    ${daysHtml()}
+    ${foundHtml(onScreen)}
+    ${noticeHtml()}
+    ${body}
+    ${edit && !searchTerms ? `<button class="btn addsection" data-act="add-section">Add a section</button>` : ''}
+    ${NATIVE ? TOUCH_KEY : ''}<p class="key"${NATIVE ? ' hidden' : ''}><b>Mouse:</b> click a step or a task box to tick it; <b>Shift + click</b> strikes it out; <b>right-click</b> a step for notes, smaller steps, a later date or a reminder; <b>drag</b> a step onto another task, or onto a section's Add box to make it a task; <b>drag</b> a task by its left edge to move it, or onto another task's steps to make it a step of that task. The <b>&#9662;</b> beside a section folds it away.<br>
+      <b>Keyboard:</b> <b>arrow keys</b> move between tasks and along their steps; <b>Space</b> ticks, <b>Delete</b> strikes out, <b>Enter</b> opens details, <b>U</b> marks a task urgent; <b>Alt + arrow keys</b> move a task; <b>/</b> searches; <b>Ctrl + left or right arrow</b> shows the day before or after; <b>Ctrl + Z</b> undoes and <b>Ctrl + Y</b> redoes.</p>
+  </main></div>
+  ${ui.drawerId && !ui.printing ? drawerHtml() : ''}
+  ${sync.pendingPlan ? planChoiceHtml() : store.state === 'choice' ? choiceHtml() : ui.dialog === 'settings' ? settingsHtml() : ui.dialog === 'handover' ? handoverHtml() : ui.dialog === 'print' ? printHtml() : ''}`;
+}
+
+function foundHtml(onScreen) {          // while searching: how many matches here, and matches on other days
+  if (!searchTerms) return '';
+  const here = onScreen.size;
+  const elsewhere = db.items.filter(t => !t.removed && !t.parentId && !onScreen.has(t.id) && hitTask(t))
+    .map(t => {
+      const when = t.status === 'done' ? `ticked ${shortDate(t.statusDay)}` : t.status === 'cancelled' ? `struck out ${shortDate(t.statusDay)}` : t.createdDay > ui.view ? `added ${shortDate(t.createdDay)}` : 'open';
+      return { t, when, key: t.statusDay || t.createdDay || '' };
+    }).sort((a, b) => a.key < b.key ? 1 : a.key > b.key ? -1 : 0);
+  return `<div class="found" role="status"><p>${here ? `<b>${here}</b> ${here === 1 ? 'task' : 'tasks'} on this DAP match` : 'Nothing on this DAP matches'} &ldquo;${esc(ui.q.trim())}&rdquo;.<button class="btn" data-act="q-clear">Clear search</button></p>
+    ${elsewhere.length ? `<p style="margin-top:8px">On other days${elsewhere.length > 40 ? ' (the latest 40)' : ''}:</p><ul>${elsewhere.slice(0, 40).map(({ t, when }) => `<li><button data-act="goto-task" data-id="${t.id}"><span class="fid">${taskCode(t)}</span>${esc(t.title)}</button><span class="when">${when}</span></li>`).join('')}</ul>` : ''}</div>`;
+}
+
+function daysHtml() {
+  const start = planStart();
+  let from = addDays(ui.day, -10), to = addDays(ui.day, 3);
+  if (ui.view < from || ui.view > to) { from = addDays(ui.view, -6); to = addDays(ui.view, 6); }
+  const chips = [];
+  for (let d = from; d <= to; d = addDays(d, 1)) {
+    if (d < start && d !== ui.view) continue;       // nothing existed before the plan was started
+    chips.push(`<button class="daybtn${d === ui.view ? ' on' : ''}${d === ui.day ? ' now' : ''}" data-act="go-day" data-day="${d}" title="${esc(longDate(d))}${d === ui.day ? ' (today)' : ''}" ${d === ui.view ? 'aria-current="date"' : ''}><span>${d === ui.day ? 'Today' : weekday(d)}</span>${dayMonth(d)}</button>`);
+  }
+  return `<nav class="days" aria-label="Other days">
+    <button class="btn quiet" data-act="go-day" data-day="${addDays(ui.view, -1)}" aria-label="Previous day" title="Previous day (Ctrl + Left)">&#8249;</button>
+    <div class="daystrip">${chips.join('')}</div>
+    <button class="btn quiet" data-act="go-day" data-day="${addDays(ui.view, 1)}" aria-label="Next day" title="Next day (Ctrl + Right)">&#8250;</button>
+    <span class="pickwrap"><button class="btn" data-act="pick-date">Other date</button><input type="date" class="daypick" data-change="goto-day" value="${ui.view}" tabindex="-1" aria-label="Go to a date"></span>
+    <button class="tog" role="switch" aria-checked="${!!db.settings.showDoneSteps}" data-act="toggle-done-steps" title="On: sub-tasks ticked on earlier days stay on the DAP for as long as their task is still open. Off: only today's ticks are shown.">Show earlier ticked sub-tasks<span class="sw" aria-hidden="true"></span></button>
+    <button class="tog" role="switch" aria-checked="${!!db.settings.compact}" data-act="toggle-compact" title="Tighter rows, to fit more tasks on screen">Compact<span class="sw" aria-hidden="true"></span></button>
+  </nav>`;
+}
+
+function noticeHtml() {
+  let out = '';
+  const m = mode();
+  if (m === 'past') out += `<div class="notice day"><p>This is the DAP of ${esc(longDate(ui.view))}, as it stood at the end of that day. You can tick or strike out something you forgot to mark. Everything else is changed on today's DAP.</p><button class="btn primary" data-act="go-today">Back to today</button></div>`;
+  if (m === 'future') out += `<div class="notice day"><p>This is what is due on the DAP of ${esc(longDate(ui.view))}. A task you add here is scheduled for that day.</p><button class="btn primary" data-act="go-today">Back to today</button></div>`;
+  if (store.note) out += `<div class="notice bad"><p>${esc(store.note)}</p></div>`;
+  if (store.error) out += `<div class="notice bad"><p>The last change could not be written to the data file (${esc(store.error)}). It is kept in this browser until the file can be saved.</p><button class="btn" data-act="retry-save">Save again</button></div>`;
+  if (store.state === 'none' && FS_OK) out += `<div class="notice"><p>Your plan is saved only inside this browser for now. Choose a folder and it is also kept as a file, with a dated backup each day.</p><button class="btn primary" data-act="choose-folder">Choose data folder</button></div>`;
+  if (!NATIVE && location.protocol === 'file:' && WEB_ADDRESS) out += `<div class="notice bad"><p>The DAP now opens from its web address, which also keeps it in step with your phone. Please use that instead of this file, so the two do not save over each other.</p><a class="btn primary" href="${esc(WEB_ADDRESS)}">Open the DAP</a></div>`;
+  if (SYNC_POSSIBLE && sync.on && sync.state === 'signin') out += `<div class="notice"><p>Syncing with your ${NATIVE ? 'PC' : 'phone'} is paused until you sign in to Google again.</p><button class="btn primary" data-act="sync-connect">Sign in to Google</button></div>`;
+  if (store.state === 'unsupported' && !NATIVE) out += `<div class="notice"><p>This browser cannot save the plan to a file, so it is kept inside the browser only. Open this page in Edge or Chrome to keep it as a file.</p><button class="btn" data-act="export">Save a copy</button></div>`;
+  return out;
+}
+
+function rowHtml(t, n) {              // n is the day's number, or null for a task waiting under Later
+  const m = mode(), edit = m === 'today', s = st(t), waiting = n === null;
+  const steps = kids(t.id).filter(stepShown);
+  const shows = m !== 'past';        // reminder markers are not part of a past day
+  const noted = steps.some(x => x.note || isLater(x) || (shows && remOf.has(x.id)));
+  const rems = shows ? remOf.get(t.id) : null;
+  const pt = noted ? ' padtop' : '';
+  const name = waiting ? 'the task for ' + dayMonth(s.deferUntil) : 'task ' + n;
+  return `<div class="row ${s.status}${noted ? ' has-notes' : ''}${waiting ? ' later' : ''}${t.urgent ? ' urgent' : ''}" data-id="${t.id}">
+    ${edit && !waiting ? `<button class="grip${pt}" data-grip tabindex="-1" aria-label="Drag to move this task" title="Drag to move">&#8942;&#8942;</button>` : '<span></span>'}
+    <span class="num${pt}" ${waiting ? `title="On the DAP from ${esc(longDate(s.deferUntil))}"` : ''}>${waiting ? dayMonth(s.deferUntil) : n + ')'}</span>
+    <span class="${pt.trim()}"><button class="tbox" data-act="toggle" data-id="${t.id}" aria-pressed="${s.status === 'done'}" aria-label="Tick ${name}" ${m === 'future' ? 'disabled' : ''}>${s.status === 'done' ? TICK : ''}</button></span>
+    <div class="tmain${pt}">
+      ${t.urgent ? '<span class="urg" title="Urgent" aria-label="Urgent">!</span>' : ''}${edit
+        ? `<span class="title${anyHit(t.title) ? ' hit' : ''}" contenteditable="plaintext-only" spellcheck="false" data-edit="title" data-id="${t.id}" aria-label="Wording of ${name}">${esc(t.title)}</span>`
+        : `<span class="title${anyHit(t.title) ? ' hit' : ''}">${esc(t.title)}</span>`}${rems ? `<button class="rem${rems[0].state === 'due' ? ' due' : ''}" data-act="open" data-id="${t.id}" title="Reminder ${esc(remWhen(rems[0].at, true))}">${BELL}${esc(remWhen(rems[0].at))}${rems.length > 1 ? ' +' + (rems.length - 1) : ''}</button>` : ''}
+      ${t.note ? `<button class="tnote" data-act="open" data-id="${t.id}" title="${esc(t.note)}">${esc(oneLine(t.note))}</button>` : ''}
+    </div>
+    <div class="steps">
+      ${steps.map(x => stepHtml(x, noted)).join('')}
+      ${edit ? `<span class="${noted ? 'padtop' : ''}"><input class="addstep" data-add="step" data-where="row" data-parent="${t.id}" placeholder="+ step" aria-label="Add a sub-task to ${name}" autocomplete="off"></span>` : ''}
+    </div>
+    <div class="rend${pt}">
+      <button class="pid" data-act="open" data-id="${t.id}" title="Permanent task number. Click for details.">${taskCode(t)}</button>
+      ${edit ? `<button class="rmore" data-act="menu" data-id="${t.id}" aria-haspopup="menu" aria-expanded="${ui.menuId === t.id}" aria-label="Later, strike out and details for ${name}" title="Later, strike out, details">&#8943;</button>` : ''}
+      ${edit && ui.menuId === t.id ? menuHtml(t, s, waiting) : ''}
+    </div>
+  </div>`;
+}
+
+function menuHtml(t, s, waiting) {     // opens only when its button is clicked, so it never sits over the sub-tasks
+  const item = (act, label, extra) => `<button role="menuitem" data-act="${act}" data-id="${t.id}" ${extra || ''}>${label}</button>`;
+  let out = '';
+  if (s.status === 'open') {
+    if (waiting) out += item('defer-clear', 'Bring to today');
+    out += `<div class="mrow"><span>Later</span>${item('defer', 'Tomorrow', 'data-days="1"')}${item('defer', '3 days', 'data-days="3"')}${item('defer', 'A week', 'data-days="7"')}${item('later', 'Date')}</div>`;
+    out += `<div class="mrow"><span>Remind in</span>${REM_QUICK.map(([m, label]) => item('remind', label, `data-min="${m}"`)).join('')}${item('remind-at', 'At a time')}</div><hr>`;
+  }
+  if (s.status === 'open') out += item('urgent', t.urgent ? 'Not urgent' : 'Mark urgent');
+  out += s.status === 'cancelled' ? item('reopen', 'Restore') : item('strike', 'Strike out');
+  out += item('open', 'Details');
+  return `<div class="rmenu" role="menu">${out}</div>`;
+}
+
+function stepHtml(x, rowNoted) {
+  const m = mode(), s = st(x), waiting = isLater(x), off = m === 'future' ? 'disabled' : '';
+  const rems = m !== 'past' ? remOf.get(x.id) : null;
+  const subs = kids(x.id).filter(stepShown);
+  return `<span class="step ${s.status}${rowNoted ? ' noted' : ''}${waiting ? ' later' : ''}${anyHit(x.title + ' ' + x.note) ? ' hit' : ''}" data-id="${x.id}" ${m === 'today' ? 'draggable="true"' : ''}>
+    ${rowNoted ? `<span class="snote" title="${esc((rems ? 'Reminder ' + remWhen(rems[0].at, true) + '. ' : '') + (waiting ? 'From ' + longDate(s.deferUntil) + '. ' : '') + x.note)}">${rems ? `<span class="at${rems[0].state === 'due' ? ' due' : ''}">${BELL}${esc(remWhen(rems[0].at))}</span> ` : ''}${waiting ? `<span class="from">from ${dayMonth(s.deferUntil)}</span> ` : ''}${esc(oneLine(x.note))}</span>` : ''}
+    <button class="sbtn" data-act="toggle" data-id="${x.id}" aria-pressed="${s.status === 'done'}" ${off}>
+      <span class="sline"><span class="sword" data-bind="${x.id}">${esc(x.title)}</span>${subs.length && s.status === 'done' ? TICK : ''}</span>
+      ${subs.length ? '' : `<span class="under">${s.status === 'done' ? TICK : ''}</span>`}
+    </button>
+    <button class="sopen" data-act="open" data-id="${x.id}" aria-label="Details for ${esc(x.title)}" title="Notes, smaller steps, later date">&#8250;</button>
+    ${subs.length ? `<span class="subs">${subs.map(miniHtml).join('')}</span>` : ''}
+  </span>`;
+}
+function miniHtml(x) {
+  const m = mode(), s = st(x), waiting = isLater(x), off = m === 'future' ? 'disabled' : '';
+  const deeper = kids(x.id).filter(stepShown).length;
+  const rems = m !== 'past' ? remOf.get(x.id) : null;
+  const tip = (rems ? 'Reminder ' + remWhen(rems[0].at, true) + '. ' : '') + (waiting ? 'From ' + longDate(s.deferUntil) + '. ' : '') + (x.note || '');
+  return `<span class="mini ${s.status}${waiting ? ' later' : ''}${anyHit(x.title + ' ' + x.note) ? ' hit' : ''}" data-id="${x.id}" ${m === 'today' ? 'draggable="true"' : ''}><button class="sbtn" data-act="toggle" data-id="${x.id}" aria-pressed="${s.status === 'done'}" ${tip ? `title="${esc(tip)}"` : ''} ${off}>
+    <span class="sline"><span class="sword" data-bind="${x.id}">${esc(x.title)}</span>${deeper ? `<span class="more">+${deeper}</span>` : ''}</span>
+    <span class="under">${s.status === 'done' ? TICK : ''}</span></button></span>`;
+}
+
+function demoteHtml(it, edit) {        // in Details: put a task under another task
+  const groups = liveSections().map(sec => {
+    const list = tasksIn(sec.id).filter(t => taskShown(t) && t.id !== it.id); if (!list.length) return '';
+    return `<optgroup label="${esc(sec.name || 'Unnamed section')}">${list.map(t => `<option value="${t.id}">${esc(taskCode(t) + '  ' + t.title)}</option>`).join('')}</optgroup>`;
+  }).join('');
+  if (!groups) return '';
+  return `<label class="fld"><span>Make it a sub-task of <span class="hint">(its own sub-tasks go with it)</span></span>
+    <select data-change="demote-task" data-id="${it.id}" ${edit ? '' : 'disabled'}><option value="" selected>It is a task of its own</option>${groups}</select></label>`;
+}
+function moveStepHtml(it, edit) {      // in Details: choose the task a sub-task belongs to
+  const direct = !byId.get(it.parentId).parentId;
+  const groups = liveSections().map(sec => {
+    const list = tasksIn(sec.id).filter(taskShown); if (!list.length) return '';
+    return `<optgroup label="${esc(sec.name || 'Unnamed section')}">${list.map(t => `<option value="${t.id}" ${direct && it.parentId === t.id ? 'selected' : ''}>${esc(taskCode(t) + '  ' + t.title)}</option>`).join('')}</optgroup>`;
+  }).join('');
+  return `<label class="fld"><span>Under task <span class="hint">(choose another to move it there)</span></span>
+    <select data-change="move-step" data-id="${it.id}" ${edit ? '' : 'disabled'}>${direct ? '' : `<option value="" selected>Inside &ldquo;${esc(byId.get(it.parentId).title)}&rdquo;, where it is now</option>`}${groups}<optgroup label="Make it a task of its own in">${liveSections().map(sec => `<option value="S:${sec.id}">${esc(sec.name || 'Unnamed section')}</option>`).join('')}</optgroup></select></label>`;
+}
+
+function drawerHtml() {
+  const it = byId.get(ui.drawerId); if (!it) return '';
+  const m = mode(), edit = m === 'today', off = edit ? '' : 'disabled', s = st(it), waiting = isLater(it);
+  const chain = ancestors(it), root = !it.parentId, list = kids(it.id).filter(existed);
+  const below = descendants(it.id).length;
+  const sec = db.sections.find(x => x.id === chain[0].sectionId);
+  const personal = !!sec && sec.kind === 'personal';
+  const headings = [...new Set(db.items.filter(x => !x.removed && x.hoHeading).map(x => x.hoHeading))].sort();
+  const when = waiting ? `From ${esc(longDate(s.deferUntil))}. Until then it waits under Later.`
+    : s.status === 'open' ? (root ? 'Every day until it is ticked or struck out.' : 'With its task, every day until it is ticked or struck out.')
+    : `${s.status === 'done' ? 'Ticked' : 'Struck out'} on ${esc(longDate(s.statusDay))}.`;
+  return `<aside class="drawer" aria-label="Details">
+    <div class="dhead">
+      <nav class="crumbs" aria-label="Where this sits">${chain.map((a, i) => i === chain.length - 1
+        ? `<span class="here" data-bind="${a.id}">${esc(a.title)}</span>`
+        : `<button data-act="open" data-id="${a.id}"><span data-bind="${a.id}">${esc(a.title)}</span></button><span aria-hidden="true">&#8250;</span>`).join('')}</nav>
+      <button class="dclose" data-act="close-drawer" aria-label="Close details" title="Close (Esc)">&times;</button>
+    </div>
+    <div class="drawer-body">
+      <label class="fld"><span>${root ? 'Task' : 'Sub-task'}</span>
+        <input type="text" class="big${root ? '' : ' step'}" data-edit="title" data-id="${it.id}" value="${esc(it.title)}" autocomplete="off" ${off}></label>
+      <div class="state">
+        <button class="btn" data-act="mark-open" data-id="${it.id}" aria-pressed="${s.status === 'open'}" ${m === 'future' ? 'disabled' : ''}>Open</button>
+        <button class="btn" data-act="mark-done" data-id="${it.id}" aria-pressed="${s.status === 'done'}" ${m === 'future' ? 'disabled' : ''}>Done</button>
+        <button class="btn" data-act="mark-struck" data-id="${it.id}" aria-pressed="${s.status === 'cancelled'}" ${m === 'future' ? 'disabled' : ''}>Struck out</button>
+      </div>
+      <div class="fld"><span class="lbl">On the DAP</span>
+        <p class="when">${when}</p>
+        ${edit && s.status === 'open' ? `<div class="state">
+          <button class="btn" data-act="defer" data-days="1" data-id="${it.id}">Tomorrow</button>
+          <button class="btn" data-act="defer" data-days="3" data-id="${it.id}">In 3 days</button>
+          <button class="btn" data-act="defer" data-days="7" data-id="${it.id}">In a week</button>
+          <span class="pickwrap"><button class="btn" data-act="pick-date">Pick a date</button><input type="date" data-change="defer-date" data-id="${it.id}" min="${addDays(ui.day, 1)}" value="${waiting ? s.deferUntil : ''}" tabindex="-1" aria-label="Pick a later date"></span>
+          ${waiting ? `<button class="btn" data-act="defer-clear" data-id="${it.id}">Bring to today</button>` : ''}
+        </div>` : ''}
+      </div>
+      ${edit && s.status === 'open' ? remBlockHtml(it) : ''}
+      <label class="fld"><span>Notes</span><textarea data-edit="note" data-id="${it.id}" rows="4" placeholder="PR number, date, who to call" ${off}>${esc(it.note)}</textarea></label>
+      <div class="fld"><span class="lbl">${root ? 'Sub-tasks' : 'Smaller steps'}</span>
+        ${list.length ? `<ul class="klist">${list.map(k => { const c = kids(k.id).length, ks = st(k); return `<li class="${ks.status}">
+          <button class="tbox" data-act="toggle" data-id="${k.id}" aria-pressed="${ks.status === 'done'}" aria-label="Tick ${esc(k.title)}" ${m === 'future' ? 'disabled' : ''}>${ks.status === 'done' ? TICK : ''}</button>
+          <button class="kname" data-act="open" data-id="${k.id}">${esc(k.title)}</button>
+          <span class="kinfo">${[isLater(k) ? 'from ' + dayMonth(ks.deferUntil) : '', c ? plural(c, 'step') : '', k.note ? 'note' : ''].filter(Boolean).join(', ')}</span></li>`; }).join('')}</ul>` : (edit ? '' : '<p class="when">None.</p>')}
+        ${edit ? `<input class="addk" data-add="step" data-where="drawer" data-parent="${it.id}" placeholder="Add one, then press Enter" autocomplete="off">` : ''}
+      </div>
+      ${root ? '' : `<hr class="rule">` + moveStepHtml(it, edit)}
+      ${root ? `<hr class="rule">
+      <label class="fld"><span>Section</span><select data-change="move-section" data-id="${it.id}" ${off}>${liveSections().map(x => `<option value="${x.id}" ${x.id === it.sectionId ? 'selected' : ''}>${esc(x.name || 'Unnamed section')}</option>`).join('')}</select></label>
+      ${edit ? `<label class="check" style="margin:-6px 0 16px"><input type="checkbox" data-change="urgent" data-id="${it.id}" ${it.urgent ? 'checked' : ''}><span>Urgent: shown first in its section, with a red marker</span></label>` : ''}
+      ${demoteHtml(it, edit)}
+      ${personal ? `<p class="dmeta">Personal tasks are left out of handover notes.</p>` : `<label class="fld"><span>Handover heading <span class="hint">(the job this is reported under)</span></span>
+        <input type="text" data-edit="hoHeading" data-id="${it.id}" value="${esc(it.hoHeading)}" list="ho-headings" placeholder="e.g. Indents/Approvals" autocomplete="off" ${off}>
+        <datalist id="ho-headings">${headings.map(h => `<option value="${esc(h)}">`).join('')}</datalist></label>
+      <label class="fld"><span>Handover status <span class="hint">(one line per point)</span></span>
+        <textarea class="plain" data-edit="hoText" data-id="${it.id}" rows="4" placeholder="Completed:&#10;PR raised in SAP.&#10;Pending:&#10;Material to be received." ${off}>${esc(it.hoText)}</textarea></label>${edit ? `<button class="btn" data-act="ho-draft" data-id="${it.id}" style="margin:-8px 0 16px" title="Fills the box with Completed and Pending, drafted from the sub-tasks, for you to edit">Draft from sub-tasks</button>` : ''}`}` : ''}
+      <p class="dmeta">${root ? taskCode(it) + ', a' : 'A'}dded ${shortDate(it.createdDay)}.</p>
+      ${!edit ? '' : ui.confirmRemove === it.id
+        ? `<div class="confirm">Remove &ldquo;${esc(it.title)}&rdquo;${below ? ` and its ${plural(below, 'sub-task')}` : ''} for good? It will not appear in handover notes or on past days. To keep a record, strike it out instead.
+            <div class="btns"><button class="btn danger" data-act="remove-yes" data-id="${it.id}">Remove</button><button class="btn" data-act="remove-no">Keep</button></div></div>`
+        : `<button class="btn quiet danger" data-act="remove" data-id="${it.id}">Remove permanently</button>`}
+    </div>
+  </aside>`;
+}
+
+function setRows(kind) {
+  const task = kind === 'task';
+  return db.sets.filter(x => x.for === kind).map(x => `<div class="setrow">
+      <input type="text" class="${x.regex && !validPattern(x.name) ? 'bad' : ''}" data-edit="name" data-setid="${x.id}" value="${esc(x.name)}" placeholder="${task ? 'Task name or pattern' : 'Sub-task name or pattern'}" aria-label="${task ? 'Task name or pattern' : 'Sub-task name or pattern'}" title="${x.regex && !validPattern(x.name) ? 'This is not a valid pattern, so it matches nothing' : ''}">
+      <input type="text" data-edit="steps" data-setid="${x.id}" value="${esc(x.steps.join(', '))}" placeholder="${task ? 'Sub-tasks, separated by commas' : 'Steps, separated by commas'}" aria-label="${task ? 'Sub-tasks, separated by commas' : 'Steps, separated by commas'}">
+      <label class="pat"><input type="checkbox" data-change="set-regex" data-setid="${x.id}" ${x.regex ? 'checked' : ''}>Pattern</label>
+      <button class="btn quiet" data-act="set-remove" data-setid="${x.id}">Remove</button></div>`).join('');
+}
+
+function settingsHtml() {
+  const where = store.state === 'connected' ? `${esc(store.parent.name === DATA_DIR ? '' : store.parent.name + ' \\ ')}${DATA_DIR} \\ ${DATA_FILE}` : null;
+  return `<div class="veil" data-veil><div class="dialog" role="dialog" aria-modal="true" aria-labelledby="set-h">
+    <h2 id="set-h">Settings</h2>
+    <h3>Task sets</h3>
+    <p>When you add a task with one of these names, its sub-tasks are added for you.</p>
+    ${setRows('task')}
+    <button class="btn" data-act="set-add" data-kind="task">Add a task set</button>
+    <h3>Sub-task sets</h3>
+    <p>When you add a sub-task with one of these names, its smaller steps are added for you. This also applies to sub-tasks added by a task set.</p>
+    ${setRows('step')}
+    <button class="btn" data-act="set-add" data-kind="step">Add a sub-task set</button>
+    <p style="margin-top:12px">Tick <b>Pattern</b> to match by regular expression instead of the exact name. Capitals are ignored either way. For example <code>^Indent for</code> matches any name starting with &ldquo;Indent for&rdquo;, <code>quot</code> matches any name containing &ldquo;quot&rdquo;, and <code>^(PO|PR) </code> matches names starting with &ldquo;PO &rdquo; or &ldquo;PR &rdquo;. If several sets match, the first one listed is used.</p>
+    ${syncSettingsHtml()}
+    <h3>Reminders</h3>
+    ${NATIVE ? `<p>Reminders sound on this phone at their time, even with the DAP closed. Each one has Done and Snooze buttons. Reminders set on the PC reach this phone the next time the DAP is opened here.</p>
+    <label class="check"><input type="checkbox" data-change="set-repeat" ${db.settings.repeatReminders ? 'checked' : ''}><span>Repeat the alert every 5 minutes, for half an hour, until the reminder is answered.</span></label>` : `
+    <p>When a reminder is due, a bar appears at the top of the DAP and the tab's title flashes. This works for as long as the DAP is open in the browser; the window can be minimised.</p>
+    <label class="check"><input type="checkbox" data-change="set-notify" ${db.settings.notify ? 'checked' : ''}><span>Also show a Windows notification.</span></label>
+    <p style="margin:6px 0 8px 22px">${!canNotify() ? 'This browser cannot show notifications.'
+      : Notification.permission === 'granted' ? 'The browser allows notifications from this page. <button class="btn" data-act="notify-test">Send a test notification</button>'
+      : Notification.permission === 'denied' ? 'The browser is blocking notifications from this page. Allow them from the icon at the left end of the address bar, then reload the page.'
+      : 'The browser has not been asked yet. <button class="btn" data-act="notify-allow">Allow notifications</button>'}</p>
+    <label class="check"><input type="checkbox" data-change="set-repeat" ${db.settings.repeatReminders ? 'checked' : ''}><span>Repeat the notification every 5 minutes until the reminder is answered.</span></label>`}
+    <h3>Your data</h3>
+    <p>${where ? `Kept in ${where}, with a dated copy each day in the backups folder.` : NATIVE ? 'Kept on this phone' + (sync.on ? ', and in your Google Drive through sync.' : '.') : FS_OK ? 'Kept inside this browser only. Choose a folder to keep it as a file.' : 'Kept inside this browser only.'}</p>
+    <div class="btns" style="display:flex;gap:6px;flex-wrap:wrap">
+      ${FS_OK ? `<button class="btn" data-act="choose-folder">${where ? 'Change folder' : 'Choose data folder'}</button>` : ''}
+      <button class="btn" data-act="export">${NATIVE ? 'Send a copy' : 'Save a copy'}</button>
+      <button class="btn" data-act="import">Open a copy</button>
+      <input type="file" id="importfile" accept=".json,application/json" hidden>
+    </div>
+    ${ui.importError ? `<div class="notice bad" style="margin-top:10px"><p>${esc(ui.importError)}</p></div>` : ''}
+    ${ui.importDb ? `<div class="confirm" style="margin-top:10px">Replace the plan on screen with this copy (${plural(ui.importDb.items.filter(i => !i.removed && !i.parentId).length, 'task')}, last saved ${esc(new Date(ui.importDb.meta.savedAt).toLocaleString('en-GB'))})?
+      <div class="btns"><button class="btn danger" data-act="import-yes">Replace</button><button class="btn" data-act="import-no">Keep the current plan</button></div></div>` : ''}
+    <div class="foot"><button class="btn primary" data-act="close-dialog">Done</button></div>
+  </div></div>`;
+}
+
+function choiceHtml() {
+  const f = store.pendingFile; const n = f.items.filter(i => !i.removed && !i.parentId).length;
+  return `<div class="veil"><div class="dialog" role="dialog" aria-modal="true" aria-labelledby="ch-h">
+    <h2 id="ch-h">That folder already holds a plan</h2>
+    <p>The folder has a plan with ${plural(n, 'task')}, last saved ${esc(new Date(f.meta.savedAt).toLocaleString('en-GB'))}. The plan on screen is a different one. Which should be kept? The other is put in the backups folder.</p>
+    <div class="foot"><button class="btn" data-act="use-screen">Keep the plan on screen</button><button class="btn primary" data-act="use-file">Open the plan in the folder</button></div>
+  </div></div>`;
+}
+
+function gateLocked() {
+  return `<div class="gate"><h1>Daily Action Plan</h1>
+    <p>Your plan is kept in the folder &ldquo;${esc(store.parent ? store.parent.name : '')}&rdquo;. The browser asks before opening it. Choose &ldquo;Allow on every visit&rdquo; if it is offered, to skip this step next time.</p>
+    ${store.note ? `<p style="color:var(--red)">${esc(store.note)}</p>` : ''}
+    <div class="btns"><button class="btn primary" data-act="unlock" autofocus>Open my plan</button><button class="btn" data-act="choose-folder">Use a different folder</button></div></div>`;
+}
+function gateSecond() {
+  return `<div class="gate"><h1>Already open</h1>
+    <p>The plan is open in another tab or window. Use that one, so two copies do not overwrite each other. If you have closed it, reload this page.</p>
+    <div class="btns"><button class="btn primary" data-act="reload">Reload</button></div></div>`;
+}
+
+function renderStatus() {
+  renderSyncStatus();
+  const el = $('#savestate'); if (!el) return;
+  let text = '', warn = false;
+  if (store.state === 'connected') {
+    if (store.error) { text = 'Not saved to file'; warn = true; }
+    else if (saveTimer || store.writing) text = 'Saving';
+    else if (store.lastSaved) text = `Saved ${clockTime(store.lastSaved)} to ${DATA_DIR}`;
+  } else if (NATIVE) text = 'Saved on this phone';
+  else if (store.state === 'none' || store.state === 'unsupported') text = 'Saved in this browser only';
+  el.textContent = text; el.classList.toggle('warn', warn);
+}
+
+/* =====================================================================
+   6. Events
+   ===================================================================== */
+const acts = {
+  toggle(el, e) { const it = byId.get(el.dataset.id); if (!it) return; const now = st(it).status; setStatus(it.id, e.shiftKey ? (now === 'cancelled' ? 'open' : 'cancelled') : (now === 'open' ? 'done' : 'open')); },
+  'go-day'(el) { goDay(el.dataset.day); },
+  'go-today'() { goDay(ui.day); },
+  'pick-date'(el) { const box = el.parentElement.querySelector('input[type=date]'); try { box.showPicker(); } catch (e) { box.classList.add('show'); box.focus(); } },
+  later(el) {                         // open Details and bring up the calendar
+    ui.drawerId = el.dataset.id; ui.confirmRemove = null; ui.refocus = '.drawer [data-act="pick-date"]'; render();
+    const box = $('.drawer [data-change="defer-date"]'); if (box) { try { box.showPicker(); } catch (e) { } }
+  },
+  menu(el) { const id = el.dataset.id; ui.menuId = ui.menuId === id ? null : id; ui.refocus = ui.menuId ? '.rmenu button' : `.rmore[data-id="${id}"]`; render(); },
+  defer(el) { setDefer(el.dataset.id, addDays(ui.day, +el.dataset.days)); },
+  'defer-clear'(el) { setDefer(el.dataset.id, null); },
+  strike(el) { setStatus(el.dataset.id, 'cancelled'); },
+  reopen(el) { setStatus(el.dataset.id, 'open'); },
+  'mark-open'(el) { setStatus(el.dataset.id, 'open'); },
+  'mark-done'(el) { setStatus(el.dataset.id, 'done'); },
+  'mark-struck'(el) { setStatus(el.dataset.id, 'cancelled'); },
+  open(el) { ui.drawerId = el.dataset.id; ui.confirmRemove = null; ui.remError = null; render(); },
+  'close-drawer'() { ui.drawerId = null; ui.confirmRemove = null; render(); },
+  remove(el) { ui.confirmRemove = el.dataset.id; render(); },
+  'remove-no'() { ui.confirmRemove = null; render(); },
+  'remove-yes'(el) { removeItem(el.dataset.id); },
+  'add-section'() { addSection(); },
+  'sec-up'(el) { nudgeSection(el.dataset.sid, -1); },
+  'sec-down'(el) { nudgeSection(el.dataset.sid, 1); },
+  'sec-remove'(el) { removeSection(el.dataset.sid); },
+  undo() { undo(); },
+  redo() { redo(); },
+  handover() {                        // period defaults: from the day after the last notes (or the plan's first day) to today
+    const last = db.handovers[db.handovers.length - 1];
+    let from = last && isDay(last.to) ? addDays(last.to, 1) : planStart();
+    const to = ui.day; if (from > to) from = to;
+    ui.ho = { from, to, no: last && +last.no ? +last.no + 1 : 36, msg: null, err: null };
+    ui.dialog = 'handover'; ui.menuId = null; render();
+  },
+  'ho-draft'(el) { const it = byId.get(el.dataset.id); if (it) change(() => { it.hoText = reportText(draftReport(it, it, ui.day)); it.updatedAt = nowIso(); }); },
+  async 'ho-create'() {
+    const h = ui.ho; if (!h) return;
+    const groups = handoverModel(h.from, h.to); if (!groups.length) return;
+    h.msg = null; h.err = null;
+    const blob = docxBlob(groups), base = hoFileName(h);
+    let name = base + '.docx', inFolder = false;
+    if (store.state === 'connected' && store.parent) {       // beside the DAP file, never over an existing file
+      try {
+        for (let n = 2; await fileExists(store.parent, name); n++) name = `${base} (${n}).docx`;
+        const w = await (await store.parent.getFileHandle(name, { create: true })).createWritable();
+        await w.write(blob); await w.close(); inFolder = true;
+      } catch (e) { inFolder = false; name = base + '.docx'; }
+    }
+    let shared = false;
+    if (!inFolder && NATIVE) {
+      try { await shareFile(blob, name); shared = true; } catch (e) { h.err = 'The file could not be shared (' + (e.message || e) + ').'; render(); return; }
+    } else if (!inFolder) downloadBlob(blob, name);
+    db.handovers.push({ id: uid(), no: h.no, from: h.from, to: h.to, file: name, createdAt: nowIso() }); save();
+    h.msg = inFolder ? `Saved as “${name}” in ${store.parent.name ? `the folder “${store.parent.name}”` : 'your data folder'}. Open it in Word to check and finish it.` : shared ? `“${name}” was made and offered to share. Save it to Drive or Files, or send it, then open it in Word to check and finish it.` : `Downloaded as “${name}”. Look in your Downloads folder.`;
+    render();
+  },
+  settings() { ui.dialog = 'settings'; ui.importDb = null; ui.importError = null; render(); },
+  'close-dialog'() { ui.dialog = null; ui.importDb = null; ui.importError = null; db.sets = db.sets.filter(s => s.name.trim()); save(); render(); },
+  'set-add'(el) { change(() => { const s = { id: uid(), for: el.dataset.kind === 'task' ? 'task' : 'step', regex: false, name: '', steps: [], updatedAt: nowIso() }; db.sets.push(s); ui.refocus = `[data-edit="name"][data-setid="${s.id}"]`; }); },
+  'set-remove'(el) { change(() => { db.sets = db.sets.filter(s => s.id !== el.dataset.setid); }); },
+  'choose-folder'() { chooseFolder(); },
+  async unlock() {
+    let p = 'denied';
+    try { p = await store.parent.requestPermission({ mode: 'readwrite' }); } catch (e) { }
+    if (p === 'granted') await connect(store.parent, false);
+    else { store.note = 'Access was not allowed, so the plan could not be opened. Try again and choose Allow.'; render(); }
+  },
+  'retry-save'() { store.error = null; writeFile(); render(); },
+  export() { downloadCopy(); },
+  import() { $('#importfile').click(); },
+  'import-no'() { ui.importDb = null; render(); },
+  async 'import-yes'() {
+    const incoming = ui.importDb; ui.importDb = null;
+    if (store.state === 'connected') await keepCopyOf(db, 'replaced');
+    change(() => { db = tidy(incoming); ui.drawerId = null; });
+    stampReset();
+  },
+  async 'use-file'() { const mine = db; db = tidy(store.pendingFile); await keepCopyOf(mine, 'from-browser'); await finishConnect(); },
+  async 'use-screen'() { await keepCopyOf(store.pendingFile, 'replaced'); await finishConnect(); },
+  remind(el) { addReminder(el.dataset.id, Date.now() + (+el.dataset.min) * 60000); },
+  'remind-at'(el) { ui.drawerId = el.dataset.id; ui.confirmRemove = null; ui.remError = null; ui.refocus = '.drawer [data-rem-time]'; render(); },
+  'rem-set'(el) {
+    const time = $('.drawer [data-rem-time]').value, day = $('.drawer [data-rem-day]').value;
+    if (!/^\d\d:\d\d/.test(time) || !isDay(day)) { ui.remError = 'Enter a time first.'; render(); return; }
+    const [h, mi] = time.split(':').map(Number), at = dayToDate(day); at.setHours(h, mi, 0, 0);
+    if (at.getTime() <= Date.now()) { ui.remError = `${clockTime(at)} has already passed today. Choose a later time, or another day.`; ui.refocus = '.drawer [data-rem-time]'; render(); return; }
+    addReminder(el.dataset.id, at.getTime());
+  },
+  'rem-remove'(el) { const r = remById(el.dataset.rid); if (r) change(() => { r.state = 'dismissed'; r.updatedAt = nowIso(); }); },
+  'rem-done'(el) { answerReminder(el.dataset.rid, 'done'); },
+  'rem-snooze'(el) { answerReminder(el.dataset.rid, 'snooze', +el.dataset.min); },
+  'rem-dismiss'(el) { answerReminder(el.dataset.rid, 'dismiss'); },
+  'rem-open'(el) { const r = remById(el.dataset.rid); if (!r) return; ui.view = ui.day; ui.drawerId = r.itemId; ui.confirmRemove = null; render(); },
+  'notify-allow'() { try { Notification.requestPermission().then(() => render()); } catch (e) { } },
+  'notify-test'() { try { new Notification('DAP test notification', { body: 'Reminders will appear like this.' }); } catch (e) { } },
+  fold(el) { const sec = db.sections.find(x => x.id === el.dataset.sid); if (!sec) return; sec.collapsed = !sec.collapsed; sec.updatedAt = nowIso(); save(); ui.refocus = `.fold[data-sid="${sec.id}"]`; render(); },      // a view choice, not part of undo
+  'toggle-compact'() { db.settings.compact = !db.settings.compact; save(); ui.refocus = '[data-act="toggle-compact"]'; render(); },
+  urgent(el) { setUrgent(el.dataset.id); },
+  'q-clear'() { ui.q = ''; render(); },
+  'goto-task'(el) {                     // a search result from another day: go to the day it was closed (or today) and open it
+    const t = byId.get(el.dataset.id); if (!t) return;
+    ui.view = t.status !== 'open' ? t.statusDay : ui.day;
+    ui.drawerId = t.id; ui.confirmRemove = null; ui.menuId = null; render();
+    const r = $(`.row[data-id="${t.id}"]`); if (r) r.scrollIntoView({ block: 'center' });
+  },
+  print() { ui.dialog = 'print'; ui.menuId = null; render(); },
+  'print-go'() { const box = $('#pr-personal'); db.settings.printPersonal = !!(box && box.checked); save(); ui.dialog = null; doPrint(); },
+  'toggle-done-steps'() { db.settings.showDoneSteps = !db.settings.showDoneSteps; save(); ui.refocus = '[data-act="toggle-done-steps"]'; render(); },      // a view choice, so not part of undo
+  reload() { location.reload(); },
+  'sync-connect'() { connectSync(); },
+  'sync-now'() { sync.st.seen = {}; syncSoon(0); },
+  async 'sync-off'() { await signOut(); render(); },
+  'plan-combine'() { const p = sync.pendingPlan; sync.pendingPlan = null; if (p.R.meta.createdAt < db.meta.createdAt) { db.meta.id = p.R.meta.id; db.meta.createdAt = p.R.meta.createdAt; } sync.st.joined = [...(sync.st.joined || []), p.R.meta.id, db.meta.id]; save(); render(); syncSoon(100); },
+  async 'plan-replace'() { const p = sync.pendingPlan; sync.pendingPlan = null; if (store.state === 'connected') await keepCopyOf(db, 'replaced-by-drive'); const keep = { compact: db.settings.compact, printPersonal: db.settings.printPersonal }; db = tidy(JSON.parse(JSON.stringify(p.R))); Object.assign(db.settings, keep); await idbSet(p.devKey, { remote: p.R, local: JSON.parse(JSON.stringify(db)) }); afterMerge(); save(); syncSoon(100); }
+};
+
+document.addEventListener('click', e => {
+  const veil = e.target.closest('[data-veil]');
+  if (veil && e.target === veil) { acts['close-dialog'](); return; }
+  const el = e.target.closest('[data-act]');
+  const menuWasOpen = ui.menuId;
+  if (menuWasOpen && !(el && el.dataset.act === 'menu')) ui.menuId = null;      // a click anywhere else closes a row's menu
+  if (el && !el.disabled) { const fn = acts[el.dataset.act]; if (fn) fn(el, e); }
+  if (menuWasOpen && !ui.menuId && $('.rmenu')) render();
+});
+
+document.addEventListener('contextmenu', e => {     // right-click a step for its details
+  const step = e.target.closest('.mini, .step'); if (!step) return;
+  e.preventDefault(); ui.drawerId = step.dataset.id; ui.confirmRemove = null; render();
+});
+
+document.addEventListener('change', e => {
+  const t = e.target;
+  if (t.dataset.change === 'move-section') moveTask(t.dataset.id, t.value, null);
+  else if (t.dataset.change === 'demote-task') { if (t.value) demoteTask(t.dataset.id, t.value, null); }
+  else if (t.dataset.change === 'urgent') setUrgent(t.dataset.id, t.checked);
+  else if (t.dataset.change === 'move-step') { if (t.value.startsWith('S:')) promoteStep(t.dataset.id, t.value.slice(2)); else if (t.value) moveStep(t.dataset.id, t.value, null); }
+  else if (t.dataset.change === 'set-regex') change(() => { const x = db.sets.find(q => q.id === t.dataset.setid); if (x) { x.regex = t.checked; x.updatedAt = nowIso(); } });
+  else if (t.dataset.change === 'goto-day') { if (isDay(t.value)) goDay(t.value); }
+  else if (t.dataset.change === 'defer-date') { if (isDay(t.value) && t.value > ui.day) setDefer(t.dataset.id, t.value); }
+  else if (t.dataset.change === 'ho-from') { if (ui.ho && isDay(t.value) && t.value <= ui.ho.to) { ui.ho.from = t.value; ui.ho.msg = null; render(); } }
+  else if (t.dataset.change === 'ho-to') { if (ui.ho && isDay(t.value) && t.value >= ui.ho.from) { ui.ho.to = t.value; ui.ho.msg = null; render(); } }
+  else if (t.dataset.change === 'ho-no') { const n = Math.floor(+t.value); if (ui.ho && n >= 1) { ui.ho.no = n; ui.ho.msg = null; render(); } }
+  else if (t.dataset.change === 'set-notify') change(() => { db.settings.notify = t.checked; });
+  else if (t.dataset.change === 'set-repeat') change(() => { db.settings.repeatReminders = t.checked; });
+  else if (t.dataset.change === 'devname') { const v = t.value.trim().slice(0, 30); if (v && sync.device) { sync.device.name = v; idbSet('sync.device', sync.device).catch(() => { }); sync.st.uploaded = null; syncSoon(500); } }
+  else if (t.id === 'importfile' && t.files[0]) {
+    t.files[0].text().then(txt => {
+      let d = null; try { d = JSON.parse(txt); } catch (err) { }
+      if (d && d.app === APP && Array.isArray(d.items)) { ui.importDb = tidy(d); ui.importError = null; }
+      else { ui.importDb = null; ui.importError = 'That file is not a Daily Action Plan data file.'; }
+      render();
+    });
+  }
+});
+
+/* --- typing: fields marked data-edit update the data as you type --- */
+function editTarget(el) {
+  const d = el.dataset;
+  if (d.id) return db.items.find(x => x.id === d.id);
+  if (d.sid) return db.sections.find(x => x.id === d.sid);
+  if (d.setid) return db.sets.find(x => x.id === d.setid);
+  return null;
+}
+const readField = el => el.isContentEditable ? oneLine(el.textContent) : el.value;
+function writeEdit(el, value) {
+  const obj = editTarget(el); if (!obj) return;
+  const d0 = el.dataset, f = d0.edit;
+  if (f === 'steps') obj.steps = value.split(',').map(s => s.trim()).filter(Boolean);
+  else obj[f] = value;
+  obj.updatedAt = nowIso();
+  if (d0.setid && f === 'name') { const bad = !!obj.regex && !validPattern(value); el.classList.toggle('bad', bad); el.title = bad ? 'This is not a valid pattern, so it matches nothing' : ''; }
+  if (f === 'title' && el.dataset.id) {        // show the new wording everywhere else it appears
+    for (const o of $$(`[data-edit="title"][data-id="${obj.id}"]`)) if (o !== el) { if (o.isContentEditable) o.textContent = value; else o.value = value; }
+    for (const o of $$(`[data-bind="${obj.id}"]`)) o.textContent = value;
+  }
+}
+document.addEventListener('focusin', e => { const el = e.target; if (el.dataset && el.dataset.edit) { el._before = readField(el); el._snap = JSON.stringify(db); } });
+document.addEventListener('input', e => { if (e.target.id === 'q') { ui.q = e.target.value; render(); return; } const el = e.target; if (el.dataset && el.dataset.edit) { writeEdit(el, readField(el)); save(); } });
+document.addEventListener('focusout', e => {
+  const el = e.target; if (!el.dataset) return;
+  if (el.dataset.edit) {
+    if (rendering || el._before === undefined) return;
+    const f = el.dataset.edit;
+    let v = readField(el); const trimmed = (f === 'note' || f === 'hoText') ? v.replace(/\s+$/, '') : v.trim();
+    const mustHaveText = f === 'title';
+    const final = (mustHaveText && !trimmed) ? el._before : trimmed;
+    if (final !== v || el.isContentEditable) { writeEdit(el, final); if (el.isContentEditable) { if (el.textContent !== final) el.textContent = final; } else el.value = final; }
+    if (final !== el._before) {
+      pushUndo(el._snap);
+      if (el.dataset.id) logEvent(el.dataset.id, 'edit', f);
+      save();
+      if (f === 'note' || f === 'hoHeading') requestRender(); else { const u = $('[data-act="undo"]'), r = $('[data-act="redo"]'); if (u) u.disabled = false; if (r) r.disabled = true; }
+    }
+    el._before = undefined;
+  } else if (el.dataset.add && el.value.trim() && !rendering) {     // text left in an "add" box is kept, not lost
+    const v = el.value.trim(); el.value = '';
+    if (el.dataset.add === 'task') addTask(el.dataset.section, v, { defer: true }); else addStep(el.dataset.parent, v, { defer: true });
+  }
+});
+
+document.addEventListener('keydown', e => {
+  const t = e.target;
+  if (e.isComposing) return;
+  if (t.id === 'q') {                   // the search box
+    if (e.key === 'Escape') { e.preventDefault(); if (ui.q) { ui.q = ''; render(); } else t.blur(); }
+    if (e.key === 'Enter') { const first = $('.sheet .row .tbox:not(:disabled)'); if (first) { e.preventDefault(); first.focus(); } }
+    return;
+  }
+  // keyboard ticking: arrows move between task boxes and along a task's steps; Space ticks (the browser's own button press),
+  // Delete strikes out, Enter opens details, U marks a task urgent
+  const onTick = t.matches && t.matches('.sheet .tbox, .sheet .sbtn');
+  if ((onTick || t === document.body) && !e.ctrlKey && !e.altKey && !e.metaKey && !ui.dialog && !drag) {
+    if (e.key.startsWith('Arrow') && moveTickFocus(onTick ? t : null, e.key)) { e.preventDefault(); return; }
+    if (onTick) {
+      const id = t.dataset.id, it = byId.get(id);
+      if (e.key === 'Delete' && it) { e.preventDefault(); setStatus(id, st(it).status === 'cancelled' ? 'open' : 'cancelled'); return; }
+      if (e.key === 'Enter' && it) { e.preventDefault(); ui.drawerId = id; ui.confirmRemove = null; ui.remError = null; render(); return; }
+      if ((e.key === 'u' || e.key === 'U') && !e.shiftKey) { const row = t.closest('.row'); if (row) { e.preventDefault(); setUrgent(row.dataset.id); } return; }
+    }
+  }
+  if (e.key === 'Enter' && t.dataset && t.dataset.add) {
+    const v = t.value.trim(); if (!v) return;
+    e.preventDefault(); t.value = '';
+    if (t.dataset.add === 'task') { ui.refocus = `[data-add="task"][data-section="${t.dataset.section}"]`; addTask(t.dataset.section, v); }
+    else { ui.refocus = `[data-add="step"][data-parent="${t.dataset.parent}"][data-where="${t.dataset.where}"]`; addStep(t.dataset.parent, v); }
+    return;
+  }
+  if (e.key === 'Enter' && t.matches && t.matches('[data-rem-time]')) { e.preventDefault(); acts['rem-set']($('.drawer [data-act="rem-set"]')); return; }
+  if (e.key === 'Enter' && t.isContentEditable) { e.preventDefault(); t.blur(); return; }
+  if (e.key === 'Enter' && t.matches && t.matches('input[data-edit]')) { t.blur(); return; }
+  if (e.altKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
+    const row = t.closest && t.closest('.row'); if (row) { e.preventDefault(); if (t.dataset.edit) t.blur(); nudgeTask(row.dataset.id, e.key === 'ArrowUp' ? -1 : 1); }
+    return;
+  }
+  if (e.key === 'Escape') {
+    if (t.dataset && t.dataset.add) { t.value = ''; t.blur(); return; }
+    if (t.isContentEditable) { t.blur(); return; }
+    if (ui.menuId) { const id = ui.menuId; ui.menuId = null; ui.refocus = `.rmore[data-id="${id}"]`; render(); return; }
+    if (ui.dialog) { acts['close-dialog'](); return; }
+    if (ui.drawerId) { acts['close-drawer'](); return; }
+  }
+  if ((e.key === 'ArrowDown' || e.key === 'ArrowUp') && t.closest && t.closest('.rmenu')) {      // arrow keys within a row's menu
+    e.preventDefault(); const items = $$('.rmenu button'); const i = items.indexOf(t);
+    items[(i + (e.key === 'ArrowDown' ? 1 : items.length - 1)) % items.length].focus(); return;
+  }
+  const typing = t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName);
+  if (e.key === '/' && !typing && !e.ctrlKey && !e.altKey && !e.metaKey && !ui.dialog) { const q = $('#q'); if (q) { e.preventDefault(); q.focus(); } return; }
+  // Undo and redo. Inside a field that holds text, the browser's own text undo applies instead.
+  const ownText = typing && !(t.dataset && t.dataset.add && !t.value);
+  const k = e.key.toLowerCase();
+  if ((e.ctrlKey || e.metaKey) && !e.altKey && !ownText) {
+    if (k === 'z' && !e.shiftKey) { e.preventDefault(); undo(); return; }
+    if (k === 'y' || (k === 'z' && e.shiftKey)) { e.preventDefault(); redo(); return; }
+  }
+  if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && (e.key === 'ArrowLeft' || e.key === 'ArrowRight') && !typing && !ui.dialog) { e.preventDefault(); goDay(addDays(ui.view, e.key === 'ArrowLeft' ? -1 : 1)); }
+});
+
+/* --- a click that starts while a field is being left must not be lost to a redraw --- */
+document.addEventListener('pointerdown', () => { pointerDown = true; }, true);
+const pointerDone = () => setTimeout(() => { pointerDown = false; if (pendingRender) render(); }, 0);
+document.addEventListener('pointerup', pointerDone, true);
+document.addEventListener('pointercancel', pointerDone, true);
+
+/* --- dragging: a task by its handle (within or between sections), or a sub-task onto any task --- */
+let drag = null;      // { kind: 'task' | 'step', id }
+document.addEventListener('mousedown', e => { if (NATIVE) return; const g = e.target.closest('[data-grip]'); if (g) g.closest('.row').draggable = true; });
+document.addEventListener('mouseup', () => { for (const r of $$('.row[draggable="true"]')) r.draggable = false; });
+document.addEventListener('dragstart', e => {
+  const el = e.target.nodeType === 1 ? e.target : e.target.parentElement; if (!el) return;
+  if (el.matches('.mini, .step')) {
+    if (!el.draggable || NATIVE) { if (NATIVE) e.preventDefault(); return; }
+    drag = { kind: 'step', id: el.dataset.id };
+    setTimeout(() => { el.classList.add('dragging'); document.body.classList.add('step-drag'); }, 0);
+  } else {
+    const row = el.closest('.row'); if (!row || !row.draggable) return;
+    drag = { kind: 'task', id: row.dataset.id };
+    setTimeout(() => row.classList.add('dragging'), 0);
+  }
+  e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', drag.id);
+  if (ui.menuId) { ui.menuId = null; const m = $('.rmenu'); if (m) m.remove(); }
+});
+function clearDropMarks() { for (const x of $$('.drop-before,.drop-after,.drop-end,.drop-into,.drop-left,.drop-right,.drop-task')) x.classList.remove('drop-before', 'drop-after', 'drop-end', 'drop-into', 'drop-left', 'drop-right', 'drop-task'); }
+function taskDropTarget(e) {
+  const row = e.target.closest && e.target.closest('.row');
+  if (row) {
+    if (row.dataset.id === drag.id) return null;
+    const area = row.querySelector('.steps').getBoundingClientRect();
+    if (e.clientX >= area.left) {         // over the sub-tasks: it would become one of them
+      let chip = e.target.closest('.step');
+      if (chip && !chip.parentElement.classList.contains('steps')) chip = null;
+      if (!chip) return { row, into: true };
+      const c = chip.getBoundingClientRect();
+      return { row, into: true, chip, before: e.clientX < c.left + c.width / 2 };
+    }
+    const r = row.getBoundingClientRect(); const before = e.clientY < r.top + r.height / 2;
+    return { row, before, sid: row.closest('.section').dataset.sid };
+  }
+  const sec = e.target.closest && e.target.closest('.section');
+  return sec ? { sec, sid: sec.dataset.sid } : null;
+}
+function stepDropTarget(e) {            // a task row (and the sub-task it would go beside), or else a section, where it becomes a task
+  const row = e.target.closest && e.target.closest('.row');
+  if (!row) { const sec = e.target.closest && e.target.closest('.section'); return sec ? { sec, sid: sec.dataset.sid } : null; }
+  let chip = e.target.closest('.step');
+  if (chip && !chip.parentElement.classList.contains('steps')) chip = null;
+  if (chip && chip.dataset.id === drag.id) return { row, self: true };
+  if (!chip) return { row };
+  const r = chip.getBoundingClientRect();
+  return { row, chip, before: e.clientX < r.left + r.width / 2 };
+}
+document.addEventListener('dragover', e => {
+  if (!drag) return;
+  clearDropMarks();
+  if (drag.kind === 'task') {
+    const t = taskDropTarget(e); if (!t) return;
+    e.preventDefault(); e.dataTransfer.dropEffect = 'move';
+    if (t.into) { t.row.classList.add('drop-into'); if (t.chip) t.chip.classList.add(t.before ? 'drop-left' : 'drop-right'); }
+    else if (t.row) t.row.classList.add(t.before ? 'drop-before' : 'drop-after'); else t.sec.classList.add('drop-end');
+  } else {
+    const t = stepDropTarget(e); if (!t) return;
+    e.preventDefault(); e.dataTransfer.dropEffect = 'move';
+    if (t.self) return;
+    if (t.sec) { t.sec.classList.add('drop-task'); return; }
+    t.row.classList.add('drop-into');
+    if (t.chip) t.chip.classList.add(t.before ? 'drop-left' : 'drop-right');
+  }
+});
+document.addEventListener('drop', e => {
+  if (!drag) return;
+  const { kind, id } = drag;
+  const t = kind === 'task' ? taskDropTarget(e) : stepDropTarget(e);
+  drag = null; clearDropMarks(); document.body.classList.remove('step-drag');      // the dragged chip may be redrawn before its own drag-end arrives
+  if (!t) return;
+  e.preventDefault();
+  if (kind === 'task') {
+    let beforeId = null;
+    if (t.into) {
+      const parentId = t.row.dataset.id;
+      if (t.chip) {
+        if (t.before) beforeId = t.chip.dataset.id;
+        else { const list = kids(parentId); const i = list.findIndex(x => x.id === t.chip.dataset.id); beforeId = list[i + 1] ? list[i + 1].id : null; }
+      }
+      demoteTask(id, parentId, beforeId); return;
+    }
+    if (t.row) {
+      if (t.before) beforeId = t.row.dataset.id;
+      else { const list = tasksIn(t.sid).filter(x => x.id !== id); const i = list.findIndex(x => x.id === t.row.dataset.id); beforeId = list[i + 1] ? list[i + 1].id : null; }
+    }
+    moveTask(id, t.sid, beforeId);
+  } else {
+    if (t.self) { render(); return; }
+    if (t.sec) { promoteStep(id, t.sid); return; }
+    const parentId = t.row.dataset.id; let beforeId = null;
+    if (t.chip) {
+      if (t.before) beforeId = t.chip.dataset.id;
+      else { const list = kids(parentId).filter(x => x.id !== id); const i = list.findIndex(x => x.id === t.chip.dataset.id); beforeId = list[i + 1] ? list[i + 1].id : null; }
+    }
+    moveStep(id, parentId, beforeId);
+  }
+});
+document.addEventListener('dragend', () => { drag = null; clearDropMarks(); document.body.classList.remove('step-drag'); for (const r of $$('.dragging')) r.classList.remove('dragging'); for (const r of $$('.row[draggable="true"]')) r.draggable = false; });
+
+/* --- never leave the page with unsaved changes --- */
+window.addEventListener('pagehide', () => { if (db && !ui.second && store.state !== 'locked') { mirrorNow(); if (saveTimer) flush(); } });
+document.addEventListener('visibilitychange', () => { if (document.hidden && saveTimer) flush(); });
+
+function moveTickFocus(from, key) {   // returns true if focus moved
+  const boxes = $$('.sheet .row .tbox:not(:disabled)');
+  if (!boxes.length) return false;
+  if (!from) { if (key === 'ArrowDown' || key === 'ArrowRight') { boxes[0].focus(); return true; } if (key === 'ArrowUp') { boxes[boxes.length - 1].focus(); return true; } return false; }
+  const row = from.closest('.row'), mine = row && row.querySelector('.tbox');
+  if (key === 'ArrowDown' || key === 'ArrowUp') {
+    const i = boxes.indexOf(mine), j = i + (key === 'ArrowDown' ? 1 : -1);
+    if (j < 0 || j >= boxes.length) return true;           // stay put at either end, and keep the page from scrolling
+    boxes[j].focus(); boxes[j].closest('.row').scrollIntoView({ block: 'nearest' }); return true;
+  }
+  const along = [mine, ...$$('.steps .sbtn:not(:disabled)', row)].filter(Boolean);
+  const k = along.indexOf(from) + (key === 'ArrowRight' ? 1 : -1);
+  if (k >= 0 && k < along.length) along[k].focus();
+  return true;
+}
+window.addEventListener('beforeprint', () => { if (!ui.printing && db) { ui.printing = true; document.body.classList.toggle('no-personal', !db.settings.printPersonal); render(); } });
+window.addEventListener('afterprint', () => endPrint());
+
+/* --- reminders are checked every few seconds, and at once when the DAP comes back into view --- */
+setInterval(reminderTick, 5000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden) { reminderTick(); syncSoon(500); } });
+window.addEventListener('online', () => syncSoon(500));
+
+/* --- a new day: the plan rolls over by itself --- */
+setInterval(() => {
+  if (!db || today() === ui.day) return;
+  const el = document.activeElement;
+  if (el && (el.isContentEditable || /^(INPUT|TEXTAREA)$/.test(el.tagName))) return;   // wait until typing stops
+  const following = ui.view === ui.day;        // if today was on screen, move on to the new today
+  ui.day = today(); if (following) ui.view = ui.day;
+  backupToday(); render();
+}, 20000);
+
+/* =====================================================================
+   8. Sync between the PC and the phone, through Google Drive
+   Each device keeps the whole plan and writes it to a file of its own in the Drive folder "Daily Action Plan".
+   It reads the other devices' files and merges them in. The permission asked for (drive.file) reaches only
+   files the DAP itself created, nothing else in the Drive.
+   Merging is done record by record and field by field, against what each side looked like at the last merge,
+   so a change made on one side is never undone by the other; if both sides changed the same field, the later edit wins.
+   ===================================================================== */
+const GOOGLE = { clientId: '', clientSecret: '' };      // filled in once the Google project is set up (see the setup notes)
+const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
+const SYNC_FOLDER = 'Daily Action Plan';
+const SYNC_EVERY = 60000;                                 // while the DAP is open and in view
+const NATIVE = !!(window.Capacitor && typeof Capacitor.getPlatform === 'function' && Capacitor.getPlatform() !== 'web' && window.capacitorExports);
+const Native = NATIVE ? (() => { const reg = capacitorExports.registerPlugin; return { auth: reg('DriveAuth'), notes: reg('LocalNotifications'), app: reg('App'), share: reg('Share'), fs: reg('Filesystem') }; })() : null;
+const WEB_SYNC_OK = !NATIVE && (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1');
+const SYNC_POSSIBLE = (NATIVE || WEB_SYNC_OK) && !!GOOGLE.clientId;
+const LOCAL_ONLY = { settings: ['compact', 'printPersonal', 'updatedAt'], sections: ['collapsed'] };   // view choices that stay with each device
+const MERGED = ['sections', 'items', 'sets', 'reminders', 'handovers'];
+
+const sync = { on: false, state: 'off', busy: false, again: false, timer: null, last: null, error: null, token: null, tokenExp: 0, need: null, device: null, st: null, others: [], pendingPlan: null };
+// state: off | working | ok | offline | error | signin (permission needs to be given again)
+
+/* ---------- merging: kept free of the page, so it can be checked on its own ---------- */
+const jsonOf = v => JSON.stringify(v === undefined ? null : v);
+function mergeRecord(l, r, br, bl, skip) {       // -> { rec, changed }
+  const out = Object.assign({}, l); let changed = false;
+  const keys = new Set([...Object.keys(l), ...Object.keys(r)]);
+  for (const k of keys) {
+    if (k === 'updatedAt' || (skip && skip.includes(k))) continue;
+    const lv = jsonOf(l[k]), rv = jsonOf(r[k]); if (lv === rv) continue;
+    const remoteChanged = !br || jsonOf(br[k]) !== rv, localChanged = !bl || jsonOf(bl[k]) !== lv;
+    let takeRemote = false;
+    if (remoteChanged && !localChanged) takeRemote = true;
+    else if (remoteChanged && localChanged) takeRemote = (r.updatedAt || '') > (l.updatedAt || '');       // both changed it: the later edit wins
+    if (takeRemote) { if (r[k] === undefined) delete out[k]; else out[k] = r[k]; changed = true; }
+  }
+  if (changed && (r.updatedAt || '') > (out.updatedAt || '')) out.updatedAt = r.updatedAt;
+  return { rec: out, changed };
+}
+function mergeList(L, R, BR, BL, skip) {          // records by id -> { list, changed }
+  const map = a => new Map((a || []).filter(x => x && x.id).map(x => [x.id, x]));
+  const l = map(L), r = map(R), br = map(BR), bl = map(BL);
+  const out = []; let changed = false;
+  for (const x of L) {
+    if (!x || !x.id) { out.push(x); continue; }
+    const rx = r.get(x.id);
+    if (rx) { const m = mergeRecord(x, rx, br.get(x.id), bl.get(x.id), skip); out.push(m.rec); if (m.changed) changed = true; continue; }
+    // not in the other device's file: it was deleted there if that device had it last time and this side left it as it was
+    if (br.has(x.id) && bl.has(x.id) && jsonOf(bl.get(x.id)) === jsonOf(x)) { changed = true; continue; }
+    out.push(x);
+  }
+  for (const rx of R || []) {
+    if (!rx || !rx.id || l.has(rx.id)) continue;
+    // deleted on this side since the last merge, and not touched there since: stays deleted
+    if (bl.has(rx.id) && br.has(rx.id) && jsonOf(br.get(rx.id)) === jsonOf(rx)) continue;
+    out.push(rx); changed = true;
+  }
+  return { list: out, changed };
+}
+const logKey = e => `${e.t}|${e.id}|${e.e}|${e.d || ''}|${jsonOf(e.v)}`;
+function mergeDb(L, R, BR, BL) {                 // L: this device, R: the other's file, BR/BL: both as they were at the last merge
+  const out = JSON.parse(JSON.stringify(L)); let changed = false;
+  for (const k of MERGED) {
+    const m = mergeList(out[k] || [], R[k] || [], BR && BR[k], BL && BL[k], LOCAL_ONLY[k]);
+    if (m.changed) { out[k] = m.list; changed = true; }
+  }
+  const sR = Object.assign({ updatedAt: R.meta && R.meta.savedAt }, R.settings || {}), sL = Object.assign({ updatedAt: L.meta && L.meta.savedAt }, out.settings || {});
+  const ms = mergeRecord(sL, sR, BR && BR.settings, BL && BL.settings, LOCAL_ONLY.settings);
+  if (ms.changed) { delete ms.rec.updatedAt; out.settings = ms.rec; changed = true; }
+  const seen = new Set(out.log.map(logKey)); let added = 0;
+  for (const e of R.log || []) { const k = logKey(e); if (!seen.has(k)) { seen.add(k); out.log.push(e); added++; } }
+  if (added) { out.log.sort((a, b) => a.t < b.t ? -1 : a.t > b.t ? 1 : 0); changed = true; }
+  for (const s of ['T', 'P', 'PC']) {
+    const n = Math.max(out.meta.next[s] || 1, (R.meta && R.meta.next && R.meta.next[s]) || 1);
+    if (n !== out.meta.next[s]) { out.meta.next[s] = n; changed = true; }
+  }
+  if (fixNumbers(out)) changed = true;
+  return { db: out, changed };
+}
+function fixNumbers(d) {      // two devices gave out the same permanent ID while apart: the later task takes the next free number
+  const groups = new Map(); let changed = false;
+  for (const it of d.items) {
+    if (it.removed || !it.no || !it.series) continue;
+    const k = it.series + ':' + it.no; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(it);
+  }
+  for (const [s] of Object.entries(d.meta.next)) { let top = 0; for (const it of d.items) if (it.series === s && it.no > top) top = it.no; if (d.meta.next[s] <= top) { d.meta.next[s] = top + 1; changed = true; } }
+  for (const list of groups.values()) {
+    if (list.length < 2) continue;
+    list.sort((a, b) => a.createdAt < b.createdAt ? -1 : a.createdAt > b.createdAt ? 1 : a.id < b.id ? -1 : 1);
+    for (const it of list.slice(1)) { it.no = d.meta.next[it.series]++; it.updatedAt = nowIso(); changed = true; }
+  }
+  return changed;
+}
+
+/* ---------- noticing which records changed here, so that "the later edit wins" can be told apart ---------- */
+let stampSeen = new Map();
+const stampKey = x => { const c = Object.assign({}, x); delete c.updatedAt; return JSON.stringify(c); };
+function stampReset() { stampSeen = new Map(); sync.stampedAt = nowIso(); for (const k of MERGED) for (const x of db[k] || []) if (x && x.id) stampSeen.set(k + ':' + x.id, stampKey(x)); }
+function stampChanges() {
+  const t = nowIso();
+  for (const k of MERGED) for (const x of db[k] || []) {
+    if (!x || !x.id) continue;
+    const key = k + ':' + x.id, now = stampKey(x), was = stampSeen.get(key);
+    if (was !== undefined && was !== now && !(x.updatedAt && x.updatedAt > (sync.stampedAt || ''))) x.updatedAt = t;
+    stampSeen.set(key, now);
+  }
+  sync.stampedAt = t;
+}
+
+/* ---------- signing in ---------- */
+const b64url = buf => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+const randomText = n => b64url(crypto.getRandomValues(new Uint8Array(n)));
+const REDIRECT = location.origin + location.pathname;
+async function webSignIn() {          // goes to Google's page and comes back here with a code
+  const verifier = randomText(48), state = randomText(12);
+  const challenge = b64url(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(verifier)));
+  sessionStorage.setItem('dap.auth', JSON.stringify({ verifier, state }));
+  flush();
+  location.href = 'https://accounts.google.com/o/oauth2/v2/auth?' + new URLSearchParams({
+    client_id: GOOGLE.clientId, redirect_uri: REDIRECT, response_type: 'code', scope: DRIVE_SCOPE,
+    access_type: 'offline', prompt: 'consent', include_granted_scopes: 'false', code_challenge: challenge, code_challenge_method: 'S256', state
+  });
+}
+async function tokenCall(params) {
+  const r = await fetch('https://oauth2.googleapis.com/token', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(Object.assign({ client_id: GOOGLE.clientId, client_secret: GOOGLE.clientSecret }, params)) });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) { const e = new Error(j.error_description || j.error || ('Google answered ' + r.status)); e.code = j.error; throw e; }
+  return j;
+}
+async function finishWebSignIn() {    // on coming back from Google's page; true if this load was the return
+  const q = new URLSearchParams(location.search);
+  if (!q.has('code') && !q.has('error')) return false;
+  history.replaceState(null, '', REDIRECT);
+  let saved = null; try { saved = JSON.parse(sessionStorage.getItem('dap.auth')); } catch (e) { }
+  sessionStorage.removeItem('dap.auth');
+  if (q.has('error') || !saved || saved.state !== q.get('state')) { sync.error = q.get('error') === 'access_denied' ? 'Google access was not given.' : 'Signing in did not complete. Try again.'; return true; }
+  try {
+    const j = await tokenCall({ grant_type: 'authorization_code', code: q.get('code'), redirect_uri: REDIRECT, code_verifier: saved.verifier });
+    if (!j.refresh_token) throw new Error('Google did not give lasting access. Try again.');
+    await idbSet('sync.auth', { refresh: j.refresh_token, at: nowIso() });
+    sync.token = j.access_token; sync.tokenExp = Date.now() + (j.expires_in - 120) * 1000;
+    await idbSet('sync.on', true); sync.on = true; sync.error = null;
+  } catch (e) { sync.error = 'Signing in did not complete (' + e.message + ').'; }
+  return true;
+}
+async function getToken(interactive) {
+  if (sync.token && Date.now() < sync.tokenExp) return sync.token;
+  if (NATIVE) {
+    try {
+      const r = await Native.auth.getToken({ interactive: !!interactive, scope: DRIVE_SCOPE });
+      sync.token = r.accessToken; sync.tokenExp = Date.now() + 45 * 60000; return sync.token;
+    } catch (e) {
+      if (/NEED_CONSENT|consent|resolution/i.test((e.code || '') + ' ' + (e.message || ''))) { sync.state = 'signin'; return null; }
+      throw e;
+    }
+  }
+  const a = await idbGet('sync.auth').catch(() => null);
+  if (!a || !a.refresh) { sync.state = 'signin'; return null; }
+  try {
+    const j = await tokenCall({ grant_type: 'refresh_token', refresh_token: a.refresh });
+    sync.token = j.access_token; sync.tokenExp = Date.now() + (j.expires_in - 120) * 1000; return sync.token;
+  } catch (e) {
+    if (e.code === 'invalid_grant') { await idbSet('sync.auth', null); sync.state = 'signin'; return null; }
+    throw e;
+  }
+}
+async function signOut() {
+  try {
+    if (NATIVE) await Native.auth.signOut();
+    else { const a = await idbGet('sync.auth'); if (a && a.refresh) fetch('https://oauth2.googleapis.com/revoke?token=' + encodeURIComponent(a.refresh), { method: 'POST' }).catch(() => { }); await idbSet('sync.auth', null); }
+  } catch (e) { }
+  sync.token = null; sync.tokenExp = 0; sync.on = false; sync.state = 'off'; sync.error = null;
+  await idbSet('sync.on', false).catch(() => { });
+}
+
+/* ---------- Google Drive ---------- */
+async function gfetch(url, opts, retried) {
+  const token = await getToken(false); if (!token) throw Object.assign(new Error('signin'), { signin: true });
+  const r = await fetch(url, Object.assign({}, opts, { headers: Object.assign({ Authorization: 'Bearer ' + token }, (opts && opts.headers) || {}) }));
+  if (r.status === 401 && !retried) { if (NATIVE) await Native.auth.clearToken({ token }).catch(() => { }); sync.token = null; sync.tokenExp = 0; return gfetch(url, opts, true); }
+  if (!r.ok) { let m = ''; try { m = (await r.json()).error.message; } catch (e) { } throw new Error(m || ('Drive answered ' + r.status)); }
+  return r;
+}
+const DRIVE = 'https://www.googleapis.com/drive/v3/files', UPLOAD = 'https://www.googleapis.com/upload/drive/v3/files';
+const dq = s => s.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+async function driveFolder() {
+  if (sync.st.folderId) return sync.st.folderId;
+  const q = `mimeType='application/vnd.google-apps.folder' and name='${dq(SYNC_FOLDER)}' and trashed=false`;
+  const j = await (await gfetch(`${DRIVE}?${new URLSearchParams({ q, fields: 'files(id,createdTime)', orderBy: 'createdTime', spaces: 'drive' })}`)).json();
+  let id = j.files && j.files[0] && j.files[0].id;
+  if (!id) id = (await (await gfetch(DRIVE + '?fields=id', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: SYNC_FOLDER, mimeType: 'application/vnd.google-apps.folder' }) })).json()).id;
+  sync.st.folderId = id; return id;
+}
+async function driveList(folderId) {
+  const q = `'${folderId}' in parents and trashed=false and mimeType='application/json'`;
+  const j = await (await gfetch(`${DRIVE}?${new URLSearchParams({ q, fields: 'files(id,name,modifiedTime,appProperties,size)', pageSize: '100' })}`)).json();
+  return j.files || [];
+}
+async function driveDownload(id) { return (await gfetch(`${DRIVE}/${id}?alt=media`)).json(); }
+async function driveUpload(fileId, folderId, name, obj) {
+  const body = JSON.stringify(obj), props = { dapDevice: sync.device.id, dapName: sync.device.name, dapPlan: obj.meta.id };
+  if (fileId) {
+    const r = await gfetch(`${UPLOAD}/${fileId}?uploadType=multipart&fields=id,modifiedTime`, { method: 'PATCH', headers: { 'Content-Type': 'multipart/related; boundary=dapsync' }, body: multipart({ name, appProperties: props }, body) });
+    return r.json();
+  }
+  const r = await gfetch(`${UPLOAD}?uploadType=multipart&fields=id,modifiedTime`, { method: 'POST', headers: { 'Content-Type': 'multipart/related; boundary=dapsync' }, body: multipart({ name, parents: [folderId], mimeType: 'application/json', appProperties: props }, body) });
+  return r.json();
+}
+const multipart = (meta, body) => `--dapsync\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify(meta)}\r\n--dapsync\r\nContent-Type: application/json\r\n\r\n${body}\r\n--dapsync--`;
+
+/* ---------- one round: fetch the others' changes, merge, then send this device's plan ---------- */
+const typingNow = () => { const el = document.activeElement; return !!el && (el.isContentEditable || /^(INPUT|TEXTAREA)$/.test(el.tagName)) && el.id !== 'q'; };
+function syncSoon(ms) {
+  if (!sync.on || !SYNC_POSSIBLE) return;
+  clearTimeout(sync.timer); sync.timer = setTimeout(syncOnce, ms === undefined ? 4000 : ms);
+}
+async function syncOnce() {
+  clearTimeout(sync.timer); sync.timer = null;
+  if (!sync.on || !SYNC_POSSIBLE || !db || ui.second || store.state === 'locked' || store.state === 'choice' || sync.pendingPlan) return;
+  if (sync.busy) { sync.again = true; return; }
+  if (typingNow() || ui.dialog === 'handover') { syncSoon(3000); return; }
+  if (navigator.onLine === false) { sync.state = 'offline'; renderSyncStatus(); syncSoon(SYNC_EVERY); return; }
+  const before = sync.state;
+  sync.busy = true; sync.state = 'working'; renderSyncStatus();
+  try {
+    if (saveTimer) flush();
+    stampChanges();
+    const folderId = await driveFolder();
+    const files = await driveList(folderId);
+    const others = files.filter(f => f.appProperties && f.appProperties.dapDevice && f.appProperties.dapDevice !== sync.device.id);
+    sync.others = others.map(f => ({ name: f.appProperties.dapName || f.name, modified: f.modifiedTime }));
+    let changed = false;
+    for (const f of others) {
+      if (sync.st.seen[f.id] === f.modifiedTime) continue;
+      const R = await driveDownload(f.id);
+      if (!R || R.app !== APP || !R.meta) { sync.st.seen[f.id] = f.modifiedTime; continue; }
+      if (typingNow()) { sync.again = true; break; }             // never change the page under someone typing; try again shortly
+      const devKey = 'sync.base.' + f.appProperties.dapDevice;
+      let base = await idbGet(devKey).catch(() => null);
+      if (R.meta.id !== db.meta.id) {
+        if (!hasContent(db)) { const keep = { compact: db.settings.compact, printPersonal: db.settings.printPersonal }; db = tidy(JSON.parse(JSON.stringify(R))); Object.assign(db.settings, keep); base = null; changed = true; await idbSet(devKey, { remote: R, local: JSON.parse(JSON.stringify(db)) }); sync.st.seen[f.id] = f.modifiedTime; continue; }
+        if (!(sync.st.joined || []).includes(R.meta.id)) { sync.pendingPlan = { R, f, devKey }; render(); break; }
+      }
+      const m = mergeDb(db, R, base && base.remote, base && base.local);
+      if (m.changed) { db = tidy(m.db); changed = true; }
+      await idbSet(devKey, { remote: R, local: JSON.parse(JSON.stringify(db)) });
+      sync.st.seen[f.id] = f.modifiedTime;
+    }
+    if (changed) afterMerge();
+    if (!sync.pendingPlan && (!sync.st.fileId || sync.st.uploaded !== db.meta.savedAt)) {
+      const savedAt = db.meta.savedAt;
+      const res = await driveUpload(sync.st.fileId, folderId, `DAP ${sync.device.name} ${sync.device.id.slice(0, 8)}.json`, db);
+      sync.st.fileId = res.id; sync.st.uploaded = savedAt; sync.st.seen[res.id] = res.modifiedTime;
+    }
+    await idbSet('sync.state', sync.st);
+    sync.last = new Date(); sync.error = null; sync.state = 'ok';
+  } catch (e) {
+    if (e.signin || sync.state === 'signin') { sync.state = 'signin'; sync.error = null; }
+    else if (navigator.onLine === false || /Failed to fetch|NetworkError|network/i.test(e.message)) { sync.state = 'offline'; sync.error = null; }
+    else { sync.state = 'error'; sync.error = e.message; if (/not found|404/i.test(e.message)) { sync.st.folderId = null; sync.st.fileId = null; } }
+  }
+  sync.busy = false;
+  if ((before === 'signin') !== (sync.state === 'signin')) render(); else renderSyncStatus();      // the sign-in notice comes and goes with the page
+  if (sync.again) { sync.again = false; syncSoon(1500); }
+  else if (sync.on && sync.state !== 'signin') syncSoon(document.hidden ? SYNC_EVERY * 5 : SYNC_EVERY);
+}
+function afterMerge() {           // the plan on screen now holds the other devices' changes
+  db.meta.savedAt = nowIso();
+  undoStack.length = 0; redoStack.length = 0;       // undo would otherwise take back what came from the other device
+  stampReset();
+  if (ui.drawerId && !db.items.some(x => x.id === ui.drawerId && !x.removed)) ui.drawerId = null;
+  mirrorNow(); writeFile();
+  sync.merged = new Date();
+  render();
+  scheduleAlarms();
+}
+async function startSync() {
+  try {
+    let dev = await idbGet('sync.device');
+    if (!dev || !dev.id) { dev = { id: uid(), name: NATIVE ? 'Phone' : 'PC' }; await idbSet('sync.device', dev); }
+    sync.device = dev;
+    sync.st = Object.assign({ folderId: null, fileId: null, uploaded: null, seen: {}, joined: [] }, (await idbGet('sync.state')) || {});
+    sync.on = !!(await idbGet('sync.on'));
+  } catch (e) { sync.on = false; }
+  stampReset();
+  if (sync.on && SYNC_POSSIBLE) syncSoon(800);
+  renderSyncStatus();
+}
+async function connectSync() {          // from the Connect button
+  if (!SYNC_POSSIBLE) return;
+  sync.error = null;
+  if (NATIVE) {
+    try { await getToken(true); await idbSet('sync.on', true); sync.on = true; sync.state = 'working'; render(); syncSoon(100); }
+    catch (e) { sync.error = 'Google sign-in did not complete (' + (e.message || e) + ').'; render(); }
+    return;
+  }
+  webSignIn();
+}
+
+/* ---------- what the sync line and the Settings section show ---------- */
+function syncLine() {
+  if (!SYNC_POSSIBLE || !sync.on) return '';
+  if (sync.state === 'working') return 'Syncing';
+  if (sync.state === 'offline') return 'Offline, will sync later';
+  if (sync.state === 'signin') return 'Sync needs Google sign-in';
+  if (sync.state === 'error') return 'Sync failed';
+  return sync.last ? `Synced ${clockTime(sync.last)}` : '';
+}
+function renderSyncStatus() {
+  const el = $('#syncstate'); if (!el) return;
+  const t = syncLine(); el.textContent = t; el.classList.toggle('warn', sync.state === 'error' || sync.state === 'signin'); el.hidden = !t;
+}
+function syncSettingsHtml() {
+  let body;
+  if (!GOOGLE.clientId) body = `<p>Sync with the phone is not set up yet. It needs a Google project, created once (see the setup notes).</p>`;
+  else if (!NATIVE && !WEB_SYNC_OK) body = `<p>Sync works when the DAP is opened from its web address, not from the file on this PC.</p>`;
+  else if (!sync.on) body = `<p>Keep this plan in step with your ${NATIVE ? 'PC' : 'phone'} through your Google Drive. The DAP asks only for access to the files it creates itself, in a folder named &ldquo;${SYNC_FOLDER}&rdquo;; the rest of your Drive stays out of its reach.</p>
+      <div class="btns" style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn primary" data-act="sync-connect">Connect Google Drive</button></div>`;
+  else {
+    const others = sync.others.length ? sync.others.map(o => `${esc(o.name)} (last sent ${esc(new Date(o.modified).toLocaleString('en-GB', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }))})`).join(', ') : 'none yet';
+    body = `<p>${sync.state === 'signin' ? 'Google needs you to sign in again before syncing can continue.' : sync.state === 'error' ? 'The last sync failed: ' + esc(sync.error || '') : sync.state === 'offline' ? 'No internet just now; changes are kept and sent when it is back.' : sync.last ? `Last synced at ${clockTime(sync.last)}.` : 'Connected.'}</p>
+      <p>This device is called <input class="devname" data-change="devname" value="${esc(sync.device.name)}" aria-label="This device's name" maxlength="30">. Other devices: ${others}.</p>
+      <div class="btns" style="display:flex;gap:6px;flex-wrap:wrap">${sync.state === 'signin' ? '<button class="btn primary" data-act="sync-connect">Sign in to Google</button>' : '<button class="btn" data-act="sync-now">Sync now</button>'}<button class="btn" data-act="sync-off">Disconnect</button></div>`;
+  }
+  return `<h3>Sync with ${NATIVE ? 'the PC' : 'the phone'}</h3>${sync.error && !sync.on ? `<div class="notice bad"><p>${esc(sync.error)}</p></div>` : ''}${body}`;
+}
+function planChoiceHtml() {
+  const p = sync.pendingPlan, n = p.R.items.filter(i => !i.removed && !i.parentId).length;
+  return `<div class="veil"><div class="dialog" role="dialog" aria-modal="true" aria-labelledby="pc-h">
+    <h2 id="pc-h">Your Drive holds a different plan</h2>
+    <p>The ${esc(p.f.appProperties.dapName || 'other device')} has a plan with ${plural(n, 'task')}, last saved ${esc(new Date(p.R.meta.savedAt).toLocaleString('en-GB'))}. This device has a different one. Combine the two into one plan, or replace this device's plan with the one from Drive?</p>
+    <div class="foot"><button class="btn" data-act="plan-replace">Use the plan from Drive</button><button class="btn primary" data-act="plan-combine">Combine them</button></div>
+  </div></div>`;
+}
+
+const TOUCH_KEY = `<p class="key"><b>Tap</b> a step or a task box to tick it. <b>Long-press</b> a step for its notes, smaller steps, a later date, a reminder or to strike it out. <b>&hellip;</b> beside a task: later, reminders, urgent, strike out. <b>Tap a task's ID</b> for its Details, where it can also be moved to another section or under another task. The <b>&#9662;</b> beside a section folds it away. The phone's <b>Back</b> button closes what is open.</p>`;
+
+/* ---------- on the phone: alarms that sound with the DAP closed ---------- */
+const alarmId = (rid, k) => { let h = 0; for (const c of rid) h = (h * 31 + c.charCodeAt(0)) | 0; return ((h & 0x3ffffff) * 8 + k) | 0; };
+let alarmTimer = null;
+function scheduleAlarms() { if (NATIVE) { clearTimeout(alarmTimer); alarmTimer = setTimeout(doScheduleAlarms, 400); } }
+async function doScheduleAlarms() {
+  if (!db) return;
+  try {
+    const want = [], now = Date.now();
+    for (const r of db.reminders) {
+      if (r.state !== 'pending' && r.state !== 'due') continue;
+      const it = db.items.find(x => x.id === r.itemId && !x.removed); if (!it) continue;
+      let top = it; while (top.parentId) { const up = db.items.find(x => x.id === top.parentId); if (!up) break; top = up; }
+      const at = new Date(r.at).getTime(), repeats = db.settings.repeatReminders ? 6 : 0;
+      for (let k = 0; k <= repeats; k++) {
+        const when = at + k * 5 * 60000; if (when <= now + 1000) continue;
+        want.push({ id: alarmId(r.id, k), title: 'DAP reminder: ' + it.title, body: (top !== it ? 'Under ' + top.title + '. ' : '') + 'Due ' + remWhen(r.at, true) + '.', schedule: { at: new Date(when), allowWhileIdle: true }, actionTypeId: 'dap-rem', extra: { rid: r.id }, channelId: 'dap-reminders' });
+      }
+    }
+    const pending = (await Native.notes.getPending()).notifications || [];
+    const wantIds = new Set(want.map(n => n.id));
+    const drop = pending.filter(n => !wantIds.has(+n.id)).map(n => ({ id: +n.id }));
+    if (drop.length) await Native.notes.cancel({ notifications: drop });
+    const have = new Set(pending.map(n => +n.id));
+    const add = want.filter(n => !have.has(n.id));
+    if (add.length) await Native.notes.schedule({ notifications: add.slice(0, 60) });
+    const live = new Set(db.reminders.filter(r => r.state === 'pending' || r.state === 'due').map(r => r.id));
+    const shown = ((await Native.notes.getDeliveredNotifications()).notifications || []).filter(n => n.extra && n.extra.rid && !live.has(n.extra.rid));
+    if (shown.length) await Native.notes.removeDeliveredNotifications({ notifications: shown });
+  } catch (e) { console.warn('alarms', e); }
+}
+async function clearDelivered(rid) {
+  if (!NATIVE) return;
+  try { const ids = []; for (let k = 0; k <= 6; k++) ids.push({ id: alarmId(rid, k) }); await Native.notes.cancel({ notifications: ids }); await Native.notes.removeDeliveredNotifications({ notifications: ids.map(x => ({ id: x.id, title: '', body: '' })) }); } catch (e) { }
+}
+async function startNative() {
+  if (!NATIVE) return;
+  try {
+    await Native.notes.createChannel({ id: 'dap-reminders', name: 'Reminders', description: 'DAP reminders', importance: 5, visibility: 1, vibration: true });
+    await Native.notes.registerActionTypes({ types: [{ id: 'dap-rem', actions: [{ id: 'done', title: 'Done' }, { id: 'snooze10', title: 'Snooze 10 min' }, { id: 'snooze60', title: 'Snooze 1 h' }] }] });
+    const p = await Native.notes.checkPermissions(); if (p.display !== 'granted') await Native.notes.requestPermissions();
+    Native.notes.addListener('localNotificationActionPerformed', a => {
+      const rid = a.notification && a.notification.extra && a.notification.extra.rid; if (!rid || !db) return;
+      if (a.actionId === 'done') answerReminder(rid, 'done');
+      else if (a.actionId === 'snooze10') answerReminder(rid, 'snooze', 10);
+      else if (a.actionId === 'snooze60') answerReminder(rid, 'snooze', 60);
+      else acts['rem-open']({ dataset: { rid } });
+    });
+    Native.app.addListener('appStateChange', s => { if (s.isActive) { reminderTick(); syncSoon(300); } else { flush(); if (sync.on) syncOnce(); } });
+    Native.app.addListener('backButton', () => {
+      if (ui.menuId) { ui.menuId = null; render(); }
+      else if (sync.pendingPlan || store.state === 'choice') return;
+      else if (ui.dialog) acts['close-dialog']();
+      else if (ui.drawerId) acts['close-drawer']();
+      else if (ui.q) { ui.q = ''; render(); }
+      else if (ui.view !== ui.day) goDay(ui.day);
+      else Native.app.minimizeApp();
+    });
+  } catch (e) { console.warn('native start', e); }
+  scheduleAlarms();
+}
+
+/* ---------- handing a file to the person: saved beside the plan, downloaded, or (on the phone) shared ---------- */
+async function shareFile(blob, name) {     // phone only: saved in the app's cache, then offered to WhatsApp, Drive, Files and so on
+  const data = await new Promise((ok, no) => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(',')[1]); r.onerror = () => no(r.error); r.readAsDataURL(blob); });
+  const w = await Native.fs.writeFile({ path: name, data, directory: 'CACHE' });
+  await Native.share.share({ title: name, files: [w.uri], dialogTitle: 'Send or save ' + name });
+}
+function downloadBlob(blob, name) {
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+}
+
+/* =====================================================================
+   7. Start-up
+   ===================================================================== */
+async function start() {
+  if (NATIVE) document.body.classList.add('native');
+  if (!NATIVE && (location.protocol === 'https:' || location.hostname === 'localhost') && 'serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => { });   // so the page opens without internet
+  const returning = !NATIVE && GOOGLE.clientId ? await finishWebSignIn() : false;
+  if (navigator.locks) {      // only one open copy may edit the plan
+    const got = await new Promise(res => { navigator.locks.request('dap-single-copy', { ifAvailable: true }, lock => { res(!!lock); return lock ? new Promise(() => { }) : undefined; }); });
+    if (!got) { ui.second = true; db = newDb(); render(); return; }
+  }
+  let mirror = null, mirror2 = null;
+  try { const txt = localStorage.getItem(MIRROR_KEY); if (txt) mirror = JSON.parse(txt); } catch (e) { }
+  try { const txt = await idbGet('mirror'); if (txt) mirror2 = JSON.parse(txt); } catch (e) { }
+  if (mirror2 && mirror2.app === APP && (!mirror || mirror.app !== APP || (mirror2.meta && mirror.meta && mirror2.meta.savedAt > mirror.meta.savedAt))) mirror = mirror2;
+  db = mirror && mirror.app === APP ? tidy(mirror) : newDb();
+  await startSync();
+  if (returning && sync.on) { render(); syncSoon(200); }
+  startNative();
+
+  if (!FS_OK) { store.state = 'unsupported'; render(); return; }
+  let parent = null;
+  try { parent = await idbGet('parent'); } catch (e) { }
+  if (!parent) { store.state = 'none'; render(); return; }
+  store.parent = parent;
+  let p = 'prompt';
+  try { p = await parent.queryPermission({ mode: 'readwrite' }); } catch (e) { }
+  if (p === 'granted') await connect(parent, false);
+  else { store.state = 'locked'; render(); }
+}
+start();
+</script>
+</body>
+</html>

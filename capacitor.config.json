@@ -1,0 +1,9 @@
+{
+  "appId": "pk.ab.dap",
+  "appName": "DAP",
+  "webDir": "www",
+  "android": { "allowMixedContent": false },
+  "plugins": {
+    "LocalNotifications": { "smallIcon": "ic_stat_dap", "iconColor": "#B4232A" }
+  }
+}

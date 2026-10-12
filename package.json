@@ -1,0 +1,19 @@
+{
+  "name": "daily-action-plan",
+  "version": "6.0.0",
+  "description": "Daily Action Plan: the web page (index.html) and the Android app built from it",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "@capacitor/android": "^8.5.3",
+    "@capacitor/app": "^8.1.2",
+    "@capacitor/cli": "^8.5.3",
+    "@capacitor/core": "^8.5.3",
+    "@capacitor/filesystem": "^8.1.4",
+    "@capacitor/local-notifications": "^8.3.1",
+    "@capacitor/share": "^8.0.3"
+  },
+  "private": true,
+  "scripts": {
+    "prepare-app": "node tools/prepare-app.js"
+  }
+}
