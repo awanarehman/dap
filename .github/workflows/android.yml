@@ -1,4 +1,5 @@
 name: Build the Android app
+# Each successful build replaces the release "app", so the download link never changes.
 
 # Runs whenever the DAP page or the app changes, and on demand from the Actions tab.
 on:
