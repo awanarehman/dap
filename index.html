@@ -48,10 +48,19 @@ body.drawer-open .wrap{padding-right:416px}
 .top .sub{margin:6px 0 0;color:var(--muted);font-size:13px}
 .tools{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
 .tools .btns{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+/* the bar with search, undo, redo and the save and sync lines stays at the top of the window while the DAP scrolls */
+.bar{position:sticky;top:var(--alerts-h,0px);z-index:12;display:flex;align-items:center;gap:6px;margin:0 -30px;padding:8px 30px;background:var(--paper);border-bottom:1px solid var(--rule)}
+.bar.stuck{box-shadow:0 6px 10px -8px rgba(27,36,48,.45)}
+.bar .qbox{width:260px}
+.bar .ur{display:inline-flex;align-items:center;gap:5px}
+.bar .urk{font-size:15px;line-height:1}
+.status{margin-left:auto;display:flex;flex-direction:column;align-items:flex-end;gap:1px;min-width:0}
 #savestate{font-size:12.5px;color:var(--muted);text-align:right}
 #savestate.warn{color:var(--red)}
-#syncstate{font-size:12.5px;color:var(--muted);text-align:right;margin-top:2px}
+#syncstate{font-size:12.5px;color:var(--muted);text-align:right}
 #syncstate.warn{color:var(--red);font-weight:600}
+html{scroll-padding-top:calc(var(--alerts-h,0px) + 64px)}
+.row{scroll-margin-top:calc(var(--alerts-h,0px) + 64px)}
 input.devname{width:140px;border:1px solid #AEB8C1;border-radius:4px;padding:2px 6px;font:inherit}
 body.native .grip{display:none}
 .btn{background:var(--paper);border:1px solid #AEB8C1;border-radius:4px;padding:5px 11px;font-size:13px;line-height:1.3}
@@ -68,17 +77,22 @@ body.native .grip{display:none}
 .notice.day{background:var(--faint);border-left-color:var(--ink)}
 
 /* ---------- moving between days ---------- */
-.days{display:flex;align-items:center;flex-wrap:wrap;gap:4px;margin:12px 0 0;min-width:0}
+.days{display:flex;align-items:center;flex-wrap:wrap;gap:6px 4px;margin:12px 0 0;min-width:0}
+.dayrow{display:flex;align-items:center;gap:4px;flex-wrap:nowrap;min-width:0;max-width:100%}
+.pickbtn{display:inline-flex;align-items:center;gap:6px}
+.pickbtn .cal{width:15px;height:15px;flex:none}
 .tog{margin-left:auto;display:inline-flex;align-items:center;gap:9px;background:none;border:0;border-radius:4px;padding:5px 2px 5px 6px;font-size:13px;color:var(--ink)}
 .tog:hover{background:var(--faint)}
 .tog .sw{position:relative;flex:none;width:34px;height:20px;border-radius:10px;background:#B9C3CC;transition:background .15s}
 .tog .sw::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.3);transition:transform .15s}
 .tog[aria-checked=true] .sw{background:var(--blue)}
 .tog[aria-checked=true] .sw::after{transform:translateX(14px)}
-.days>.btn{font-size:20px;line-height:1;padding:5px 9px 7px}
+.dayarrow{font-size:20px;line-height:1;padding:5px 9px 7px;flex:none}
 .daystrip{display:flex;flex:0 1 auto;gap:4px;overflow-x:auto;min-width:0;padding:2px;scrollbar-width:thin}
 .daybtn{flex:none;background:var(--paper);border:1px solid var(--rule);border-radius:4px;padding:3px 9px 2px;font-family:var(--f-plan);font-size:14px;line-height:1.2;font-variant-numeric:tabular-nums;text-align:center}
 .daybtn span{display:block;font-family:var(--f-ui);font-size:11px;color:var(--muted)}
+.daybtn b{font-weight:inherit}
+.daybtn .ds{display:none}
 .daybtn:hover{border-color:var(--ink)}
 .daybtn.now{color:var(--red);border-color:#DDA9AD}
 .daybtn.now span{color:var(--red)}
@@ -357,7 +371,7 @@ body.compact .mini .sword{font-size:12px}
   html,body{background:#fff}
   .wrap,body.drawer-open .wrap{padding:0}
   .sheet{max-width:none;border:0;box-shadow:none;padding:0}
-  .tools,.days,.notice,.found,.addwrap,.addsection,.key,.grip,.rmore,.rmenu,.sact,.fold,.addstep,.sopen,.drawer,.veil,#alerts,.dropzone,.rem,.snote .at{display:none!important}
+  .tools,.bar,.days,.notice,.found,.addwrap,.addsection,.key,.grip,.rmore,.rmenu,.sact,.fold,.addstep,.sopen,.drawer,.veil,#alerts,.dropzone,.rem,.snote .at{display:none!important}
   .top{padding-bottom:8px}
   .top h1{font-size:22px}
   .section{margin-top:12px}
@@ -373,12 +387,30 @@ body.compact .mini .sword{font-size:12px}
   body.no-personal .section.personal{display:none}
 }
 @media (max-width:760px){
-  .qbox{width:150px}
+  .top{padding-bottom:10px}
   .top h1{font-size:22px;gap:.5em}
   .tools{align-items:stretch;width:100%}
   .tools .btns{justify-content:flex-start}
-  .tools .btns .qbox{flex:1 1 100%;width:auto;font-size:15px;padding:7px 10px}
-  #savestate,#syncstate{text-align:left}
+  .bar{margin:0 -14px;padding:7px 14px 6px;flex-wrap:wrap;row-gap:3px}
+  .bar .qbox{flex:1 1 120px;width:auto;min-width:0;font-size:15px;padding:7px 10px}
+  .bar .ur{padding:6px 10px}
+  .bar .urt{display:none}
+  .bar .urk{font-size:18px}
+  .status{flex:1 0 100%;flex-direction:row;justify-content:flex-start;gap:0;margin-left:0}
+  #syncstate:not([hidden])::before{content:"\00b7";margin:0 6px}
+  #savestate,#syncstate{font-size:11.5px;text-align:left}
+  .days{margin-top:10px}
+  .dayrow{width:100%}
+  .daystrip{flex:1 1 auto;gap:3px}
+  .daybtn{flex:1 1 0;min-width:0;padding:2px 1px 1px;font-size:15px}
+  .daybtn span{font-size:10px;white-space:nowrap;overflow:hidden}
+  .daybtn .df{display:none}
+  .daybtn .ds{display:block}
+  .dayarrow{padding:4px 5px 6px;font-size:18px}
+  .pktext{display:none}
+  .pickbtn{padding:6px 8px}
+  .days .tog{margin-left:0}
+  .days .tog:first-of-type{margin-left:0}
 }
 @media (prefers-reduced-motion:reduce){ *{transition:none!important} }
 </style>
@@ -1187,6 +1219,9 @@ function render() {
   renderStatus();
   renderAlerts();
   if (db && !ui.second && store.state !== 'locked') alertDue();
+  const strip = $('.daystrip'), on = $('.daybtn.on');           // if the days do not all fit, keep the one on screen in view
+  if (strip && on && strip.scrollWidth > strip.clientWidth) strip.scrollLeft = on.offsetLeft - strip.offsetLeft - (strip.clientWidth - on.offsetWidth) / 2;
+  document.dispatchEvent(new Event('dap-rendered'));
 }
 
 function focusKey() {
@@ -1273,17 +1308,18 @@ function pageHtml() {
       </div>
       <div class="tools">
         <div class="btns">
-          <input id="q" type="search" class="qbox" value="${esc(ui.q)}" placeholder="${NATIVE ? 'Search tasks' : 'Search tasks  ( / )'}" aria-label="Search tasks" autocomplete="off" spellcheck="false">
-          <button class="btn" data-act="undo" ${undoStack.length ? '' : 'disabled'} title="Undo (Ctrl + Z)">Undo</button>
-          <button class="btn" data-act="redo" ${redoStack.length ? '' : 'disabled'} title="Redo (Ctrl + Y)">Redo</button>
           <button class="btn" data-act="handover">Handover notes</button>
           ${NATIVE ? '' : '<button class="btn" data-act="print">Print</button>'}
           <button class="btn" data-act="settings">Settings</button>
         </div>
-        <div id="savestate"></div>
-        <div id="syncstate" hidden></div>
       </div>
     </header>
+    <div class="bar">
+      <input id="q" type="search" class="qbox" value="${esc(ui.q)}" placeholder="${NATIVE ? 'Search tasks' : 'Search tasks  ( / )'}" aria-label="Search tasks" autocomplete="off" spellcheck="false">
+      <button class="btn ur" data-act="undo" ${undoStack.length ? '' : 'disabled'} title="Undo (Ctrl + Z)" aria-label="Undo"><span class="urk" aria-hidden="true">&#8630;</span><span class="urt">Undo</span></button>
+      <button class="btn ur" data-act="redo" ${redoStack.length ? '' : 'disabled'} title="Redo (Ctrl + Y)" aria-label="Redo"><span class="urk" aria-hidden="true">&#8631;</span><span class="urt">Redo</span></button>
+      <div class="status"><span id="savestate"></span><span id="syncstate" hidden></span></div>
+    </div>
     ${daysHtml()}
     ${foundHtml(onScreen)}
     ${noticeHtml()}
@@ -1310,18 +1346,21 @@ function foundHtml(onScreen) {          // while searching: how many matches her
 
 function daysHtml() {
   const start = planStart();
-  let from = addDays(ui.day, -10), to = addDays(ui.day, 3);
-  if (ui.view < from || ui.view > to) { from = addDays(ui.view, -6); to = addDays(ui.view, 6); }
+  // seven days at most: the day on screen with four before it and two after, moved along so nothing before the plan's first day is shown
+  let from = addDays(ui.view, -4);
+  if (from < start) from = start < ui.view ? start : ui.view;
+  const to = addDays(from, 6);
   const chips = [];
   for (let d = from; d <= to; d = addDays(d, 1)) {
-    if (d < start && d !== ui.view) continue;       // nothing existed before the plan was started
-    chips.push(`<button class="daybtn${d === ui.view ? ' on' : ''}${d === ui.day ? ' now' : ''}" data-act="go-day" data-day="${d}" title="${esc(longDate(d))}${d === ui.day ? ' (today)' : ''}" ${d === ui.view ? 'aria-current="date"' : ''}><span>${d === ui.day ? 'Today' : weekday(d)}</span>${dayMonth(d)}</button>`);
+    chips.push(`<button class="daybtn${d === ui.view ? ' on' : ''}${d === ui.day ? ' now' : ''}" data-act="go-day" data-day="${d}" title="${esc(longDate(d))}${d === ui.day ? ' (today)' : ''}" ${d === ui.view ? 'aria-current="date"' : ''}><span>${d === ui.day ? 'Today' : weekday(d)}</span><b class="df">${dayMonth(d)}</b><b class="ds">${+d.slice(8)}</b></button>`);
   }
   return `<nav class="days" aria-label="Other days">
-    <button class="btn quiet" data-act="go-day" data-day="${addDays(ui.view, -1)}" aria-label="Previous day" title="Previous day (Ctrl + Left)">&#8249;</button>
+    <div class="dayrow">
+    <button class="btn quiet dayarrow" data-act="go-day" data-day="${addDays(ui.view, -1)}" aria-label="Previous day" title="Previous day (Ctrl + Left)">&#8249;</button>
     <div class="daystrip">${chips.join('')}</div>
-    <button class="btn quiet" data-act="go-day" data-day="${addDays(ui.view, 1)}" aria-label="Next day" title="Next day (Ctrl + Right)">&#8250;</button>
-    <span class="pickwrap"><button class="btn" data-act="pick-date">Other date</button><input type="date" class="daypick" data-change="goto-day" value="${ui.view}" tabindex="-1" aria-label="Go to a date"></span>
+    <button class="btn quiet dayarrow" data-act="go-day" data-day="${addDays(ui.view, 1)}" aria-label="Next day" title="Next day (Ctrl + Right)">&#8250;</button>
+    <span class="pickwrap"><button class="btn pickbtn" data-act="pick-date" title="Go to any date" aria-label="Other date"><svg class="cal" viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="2.5" width="13" height="12" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M1.5 6h13M5 1v3M11 1v3" stroke="currentColor" stroke-width="1.4" fill="none"/></svg><span class="pktext">Other date</span></button><input type="date" class="daypick" data-change="goto-day" value="${ui.view}" tabindex="-1" aria-label="Go to a date"></span>
+    </div>
     <button class="tog" role="switch" aria-checked="${!!db.settings.showDoneSteps}" data-act="toggle-done-steps" title="On: sub-tasks ticked on earlier days stay on the DAP for as long as their task is still open. Off: only today's ticks are shown.">Show earlier ticked sub-tasks<span class="sw" aria-hidden="true"></span></button>
     <button class="tog" role="switch" aria-checked="${!!db.settings.compact}" data-act="toggle-compact" title="Tighter rows, to fit more tasks on screen">Compact<span class="sw" aria-hidden="true"></span></button>
   </nav>`;
@@ -1965,6 +2004,15 @@ window.addEventListener('afterprint', () => endPrint());
 
 /* --- reminders are checked every few seconds, and at once when the DAP comes back into view --- */
 setInterval(reminderTick, 5000);
+(() => {                                    // the reminders bar, when showing, sits above the sticky search bar
+  const al = document.getElementById('alerts');
+  const fit = () => document.documentElement.style.setProperty('--alerts-h', (al && !al.hidden ? al.offsetHeight : 0) + 'px');
+  if (al && 'ResizeObserver' in window) new ResizeObserver(fit).observe(al);
+  if (al) new MutationObserver(fit).observe(al, { attributes: true, attributeFilter: ['hidden'] });
+  const stuck = () => { const b = document.querySelector('.bar'); if (b) b.classList.toggle('stuck', b.getBoundingClientRect().top <= (al && !al.hidden ? al.offsetHeight : 0) + 0.5 && window.scrollY > 0); };
+  window.addEventListener('scroll', stuck, { passive: true });
+  document.addEventListener('dap-rendered', stuck);
+})();
 document.addEventListener('visibilitychange', () => { if (!document.hidden) { reminderTick(); syncSoon(500); } });
 window.addEventListener('online', () => syncSoon(500));
 
