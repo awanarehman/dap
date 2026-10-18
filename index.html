@@ -62,7 +62,7 @@ body.drawer-open .wrap{padding-right:416px}
 html{scroll-padding-top:calc(var(--alerts-h,0px) + 64px)}
 .row{scroll-margin-top:calc(var(--alerts-h,0px) + 64px)}
 input.devname{width:140px;border:1px solid #AEB8C1;border-radius:4px;padding:2px 6px;font:inherit}
-body.native .grip{display:none}
+body.native .grip{visibility:hidden;pointer-events:none}      /* no dragging in the phone app, but its column stays so the row keeps its shape */
 .btn{background:var(--paper);border:1px solid #AEB8C1;border-radius:4px;padding:5px 11px;font-size:13px;line-height:1.3}
 .btn:hover{border-color:var(--ink)}
 .btn:disabled{opacity:.45;cursor:default;border-color:#AEB8C1}
@@ -315,7 +315,7 @@ body.step-drag .dropzone{display:flex;pointer-events:auto}
   .wrap{padding:0 0 40px}
   .sheet{border:0;box-shadow:none;padding:18px 14px}
   .row{grid-template-columns:28px 26px 1fr auto;row-gap:4px}
-  .grip{display:none}
+  .row>:first-child{display:none}      /* the drag handle (today) or its empty spacer (other days) */
   .steps{grid-column:2 / -1;grid-row:2;padding-left:4px}
   .rend{grid-row:1;grid-column:4}
   .row.has-notes>.padtop{padding-top:0}
