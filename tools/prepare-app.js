@@ -8,4 +8,7 @@ if (at < 0) throw new Error('no <script> in index.html');
 html = html.slice(0, at) + '<script src="capacitor.js"></script>\n' + html.slice(at);
 fs.writeFileSync(path.join(www, 'index.html'), html);
 fs.copyFileSync(path.join(root, 'node_modules/@capacitor/core/dist/capacitor.js'), path.join(www, 'capacitor.js'));
+// the PDF reader, for loading the plant's attendance report into the organogram (app only)
+fs.mkdirSync(path.join(www, 'pdfjs'), { recursive: true });
+for (const f of ['pdf.min.mjs', 'pdf.worker.min.mjs']) fs.copyFileSync(path.join(root, 'node_modules/pdfjs-dist/build', f), path.join(www, 'pdfjs', f));
 console.log('www ready');

@@ -366,6 +366,98 @@ body.compact .mini .sword{font-size:12px}
 
 /* ---------- printing on A4 ---------- */
 @page{size:A4 portrait;margin:11mm 10mm}
+/* ---------- the organogram (phone app) ---------- */
+#org{position:fixed;inset:0;z-index:40;background:var(--paper);display:flex;flex-direction:column;animation:orgin .16s ease-out}
+#org[hidden]{display:none}
+@keyframes orgin{from{transform:translateX(-24px);opacity:.4}to{transform:none;opacity:1}}
+body.org-open{overflow:hidden}
+.otop{flex:none;padding:8px 14px 8px;border-bottom:1px solid var(--rule);background:var(--paper);box-shadow:0 4px 10px -8px rgba(27,36,48,.4)}
+.otitle{display:flex;align-items:center;gap:6px}
+.otitle h2{flex:1;margin:0;font-family:var(--f-plan);font-size:21px;font-weight:600;color:var(--red);letter-spacing:.01em}
+.oback{font-size:26px;line-height:1;padding:0 10px 4px}
+.omenu{font-size:22px;line-height:1;padding:0 10px 4px}
+.obar{display:flex;align-items:center;gap:10px;margin-top:6px}
+.obar .qbox{flex:1 1 auto;width:auto;min-width:0;font-size:15px;padding:7px 10px}
+.obar .tog{margin-left:0;flex:none;white-space:nowrap}
+.oduty{margin-top:5px;font-size:12px;color:var(--muted)}
+.oduty.old{color:var(--red)}
+.omenulist{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.omenulist .btn{text-align:left;padding:9px 12px;font-size:14px}
+.otop .notice{margin:8px 0 0}
+.otree{flex:1 1 auto;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:6px 10px 40px}
+.oempty{padding:30px 10px;text-align:center;color:var(--muted)}
+.ounit{margin:8px 0 0;border:1px solid var(--rule);border-radius:6px;background:var(--paper)}
+.ounit .ounit{margin:6px 0 6px 8px;border-left:3px solid var(--rule);border-radius:0 6px 6px 0}
+.ounit.lv0{border-color:var(--ink)}
+.ounit.pool{border-color:var(--tab);background:#FFFCEB}
+.ounit.gone{opacity:.75}
+.ohead{display:flex;align-items:center;gap:8px;padding:9px 10px;cursor:pointer;user-select:none}
+.ounit.lv0>.ohead{background:var(--ink);color:#fff;border-radius:5px 5px 0 0}
+.ounit.lv0.folded>.ohead{border-radius:5px}
+.ounit.lv1>.ohead{background:var(--faint)}
+.oname{flex:1;font-weight:600;font-size:15px}
+.ounit.lv2 .oname,.ounit.lv3 .oname{font-size:14px}
+.ocount{font-size:12px;color:var(--muted);white-space:nowrap}
+.ounit.lv0>.ohead .ocount{color:#C9D2DB}
+.ocount b{color:#1E7B3C;font-weight:700}
+.ounit.lv0>.ohead .ocount b{color:#8BE0A6}
+.chev{font-size:11px;transition:transform .12s;color:inherit;opacity:.7}
+.ounit.folded>.ohead .chev{transform:rotate(-90deg)}
+.obody{padding:2px 6px 6px}
+.ogroup{font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:10px 4px 2px}
+.ohint{margin:6px 4px;font-size:12.5px;color:var(--muted)}
+.prow{display:flex;align-items:center;gap:10px;padding:7px 4px;border-bottom:1px solid var(--faint);cursor:pointer;min-height:46px}
+.prow:last-child{border-bottom:0}
+.prow.off .pmain{opacity:.48}
+.prow.vacant .pname{color:var(--muted);font-weight:500}
+.prow.vacant{border:1px dashed #C3CCD4;border-radius:5px;margin:4px 0}
+.dot{flex:none;width:10px;height:10px;border-radius:50%;background:#C3CCD4}
+.dot.on{background:#1E9A4A;box-shadow:0 0 0 3px #D8F1E0}
+.dot.off{background:#AAB4BE}
+.dot.unk{background:transparent;border:2px solid #C3CCD4;width:6px;height:6px}
+.pmain{flex:1 1 auto;min-width:0}
+.pname{font-size:15px;font-weight:600;color:var(--ink);line-height:1.25}
+.prole{display:inline-block;font-size:11px;font-weight:600;color:#fff;background:var(--red);border-radius:3px;padding:0 5px;margin-left:4px;vertical-align:2px}
+.pdesc{font-size:12.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pdesc i{color:var(--ink);font-style:normal}
+.pcall{flex:none;width:42px;height:42px;border-radius:50%;border:0;background:#1E9A4A;color:#fff;display:inline-flex;align-items:center;justify-content:center;box-shadow:0 1px 3px rgba(0,0,0,.25)}
+.pcall svg{width:20px;height:20px}
+.prow.off .pcall{background:#5E8F6E}
+.plink{flex:none;height:32px;border-radius:16px;border:1px dashed #9AA6B1;background:var(--paper);color:var(--muted);font-size:12px;padding:0 10px}
+mark{background:#FFE58A;color:inherit;padding:0}
+.ohits,.oreview{padding-top:4px}
+.osheet-veil{position:fixed;inset:0;z-index:45;background:rgba(27,36,48,.42);display:flex;align-items:flex-end;justify-content:center}
+.osheet{width:100%;max-width:640px;max-height:88vh;overflow-y:auto;background:var(--paper);border-radius:14px 14px 0 0;padding:6px 16px 18px;box-shadow:0 -6px 20px rgba(0,0,0,.25)}
+.sh-grip{width:40px;height:4px;border-radius:2px;background:#C3CCD4;margin:4px auto 10px}
+.osheet h3{margin:0;font-size:19px;font-family:var(--f-plan);color:var(--ink)}
+.sh-sub{margin:3px 0 10px;color:var(--muted);font-size:13px}
+.sh-duty{padding:8px 10px;border-radius:6px;background:var(--faint);font-size:14px;font-weight:600}
+.sh-duty.on{background:#E3F5E9;color:#17643A}
+.sh-duty.off{background:#EEF1F4;color:#4B5866}
+.sh-strip{display:flex;gap:4px;margin:8px 0 2px}
+.dc{flex:1 1 0;min-width:0;text-align:center;font-size:10.5px;border-radius:4px;padding:3px 0;background:var(--faint);color:var(--muted);white-space:nowrap;overflow:hidden}
+.dc b{display:block;font-weight:600;color:var(--ink)}
+.dc.on{background:#E3F5E9;color:#17643A}
+.dc.off{background:#F4E7E8;color:#8A2A30}
+.sh-row{display:flex;align-items:center;gap:8px;margin-top:12px;flex-wrap:wrap}
+.sh-k{width:62px;flex:none;font-size:12.5px;color:var(--muted)}
+.sh-v{flex:1 1 140px;min-width:0;font-size:15px}
+.sh-v small{display:block;font-size:11.5px;color:var(--muted)}
+.sh-row select{flex:1 1 180px;min-width:0;font-size:14px;padding:7px 8px;border:1px solid #AEB8C1;border-radius:4px;background:var(--paper)}
+.sh-row .btn{padding:7px 12px;font-size:14px;display:inline-flex;align-items:center;gap:6px}
+.sh-row .btn svg{width:16px;height:16px}
+.sh-row .btn.callbtn{background:#1E9A4A;border-color:#1E9A4A;color:#fff}
+.sh-row .qbox{flex:1 1 auto;width:auto;font-size:15px;padding:7px 10px}
+.sh-foot{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
+.sh-foot .btn{padding:8px 16px;font-size:14px}
+.osheet>.qbox{width:100%;box-sizing:border-box;font-size:15px;padding:8px 10px;margin-top:10px}
+.clist{margin-top:6px;max-height:46vh;overflow-y:auto}
+.crow{display:flex;flex-direction:column;align-items:flex-start;width:100%;text-align:left;background:var(--paper);border:0;border-bottom:1px solid var(--faint);padding:9px 4px}
+.crow:active{background:var(--faint)}
+.cname{font-size:15px;font-weight:600;color:var(--ink)}
+.cnum{font-size:13px;color:var(--muted)}
+.cnum small{text-transform:capitalize}
+
 @media print{
   *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
   html,body{background:#fff}
@@ -418,6 +510,7 @@ body.compact .mini .sword{font-size:12px}
 <body>
 <div id="alerts" hidden aria-live="assertive"></div>
 <div id="app"></div>
+<div id="org" hidden></div>
 <script>
 'use strict';
 
@@ -496,7 +589,7 @@ function tidy(d) {            // bring any saved plan, including one from an ear
   if (!Array.isArray(d.reminders)) d.reminders = [];
   const monthAgo = new Date(Date.now() - 30 * 864e5).toISOString();       // answered reminders are kept a month, then dropped
   d.reminders = d.reminders.filter(r => r && r.id && r.itemId && r.at && (r.state === 'pending' || r.state === 'due' || (r.updatedAt || r.at) > monthAgo));
-  for (const k of ['sections', 'items', 'reminders', 'rotations', 'handovers', 'log']) if (!Array.isArray(d[k])) d[k] = [];
+  for (const k of ['sections', 'items', 'reminders', 'rotations', 'handovers', 'log', 'people', 'duty']) if (!Array.isArray(d[k])) d[k] = [];
   if (!Array.isArray(d.sets)) d.sets = [{ id: uid(), name: 'Approval', steps: ['ST', 'PM', 'EM', 'AM'], updatedAt: t }];
   for (const s of d.sets) { if (s.for !== 'task') s.for = 'step'; s.regex = !!s.regex; if (!Array.isArray(s.steps)) s.steps = []; if (typeof s.name !== 'string') s.name = ''; }
   for (const s of d.sections) { if (!s.kind) s.kind = 'work'; if (s.collapsed === undefined) s.collapsed = false; }
@@ -716,11 +809,12 @@ function downloadCopy() {
 const ui = { day: today(), view: today(), q: '', printing: false, menuId: null, remError: null, ho: null, drawerId: null, confirmRemove: null, dialog: null, refocus: null, importDb: null, importError: null, second: false };
 const undoStack = [], redoStack = [];
 
-function pushUndo(snapshot) { undoStack.push(snapshot || JSON.stringify(db)); if (undoStack.length > 60) undoStack.shift(); redoStack.length = 0; }      // a fresh change ends the chance to redo
+const planOnly = () => JSON.stringify(db, (k, v) => (k === 'people' || k === 'duty') && v === db[k] ? undefined : v);      // Undo keeps the plan, not the organogram
+function pushUndo(snapshot) { undoStack.push(snapshot || planOnly()); if (undoStack.length > 60) undoStack.shift(); redoStack.length = 0; }      // a fresh change ends the chance to redo
 function change(fn, opts) { pushUndo(); fn(); save(); if (opts && opts.defer) requestRender(); else render(); }
-function restore(json) { db = JSON.parse(json); ui.menuId = null; ui.confirmRemove = null; save(); render(); }
-function undo() { if (!undoStack.length) return; redoStack.push(JSON.stringify(db)); restore(undoStack.pop()); }
-function redo() { if (!redoStack.length) return; undoStack.push(JSON.stringify(db)); restore(redoStack.pop()); }
+function restore(json) { const keep = { people: db.people, duty: db.duty }; db = JSON.parse(json); Object.assign(db, keep); ui.menuId = null; ui.confirmRemove = null; save(); render(); }
+function undo() { if (!undoStack.length) return; redoStack.push(planOnly()); restore(undoStack.pop()); }
+function redo() { if (!redoStack.length) return; undoStack.push(planOnly()); restore(redoStack.pop()); }
 
 function nextOrder(key) { let m = -1; for (const it of db.items) if ((it.parentId || 'S:' + it.sectionId) === key && it.order > m) m = it.order; return m + 1; }
 function makeItem(parentId, sectionId, title, deferUntil) {
@@ -1219,6 +1313,7 @@ function render() {
   renderStatus();
   renderAlerts();
   if (db && !ui.second && store.state !== 'locked') alertDue();
+  if (orgUi.open) renderOrg();
   const strip = $('.daystrip'), on = $('.daybtn.on');           // if the days do not all fit, keep the one on screen in view
   if (strip && on && strip.scrollWidth > strip.clientWidth) strip.scrollLeft = on.offsetLeft - strip.offsetLeft - (strip.clientWidth - on.offsetWidth) / 2;
   document.dispatchEvent(new Event('dap-rendered'));
@@ -1308,6 +1403,7 @@ function pageHtml() {
       </div>
       <div class="tools">
         <div class="btns">
+          ${ORG_ON ? '<button class="btn" data-act="org-open">Organogram</button>' : ''}
           <button class="btn" data-act="handover">Handover notes</button>
           ${NATIVE ? '' : '<button class="btn" data-act="print">Print</button>'}
           <button class="btn" data-act="settings">Settings</button>
@@ -1727,6 +1823,7 @@ const acts = {
   'toggle-done-steps'() { db.settings.showDoneSteps = !db.settings.showDoneSteps; save(); ui.refocus = '[data-act="toggle-done-steps"]'; render(); },      // a view choice, so not part of undo
   reload() { location.reload(); },
   'sync-connect'() { connectSync(); },
+  'org-open'() { openOrg(); },
   'sync-now'() { sync.st.seen = {}; syncSoon(0); },
   async 'sync-off'() { await signOut(); render(); },
   'plan-combine'() { const p = sync.pendingPlan; sync.pendingPlan = null; if (p.R.meta.createdAt < db.meta.createdAt) { db.meta.id = p.R.meta.id; db.meta.createdAt = p.R.meta.createdAt; } sync.st.joined = [...(sync.st.joined || []), p.R.meta.id, db.meta.id]; save(); render(); syncSoon(100); },
@@ -1794,7 +1891,7 @@ function writeEdit(el, value) {
     for (const o of $$(`[data-bind="${obj.id}"]`)) o.textContent = value;
   }
 }
-document.addEventListener('focusin', e => { const el = e.target; if (el.dataset && el.dataset.edit) { el._before = readField(el); el._snap = JSON.stringify(db); } });
+document.addEventListener('focusin', e => { const el = e.target; if (el.dataset && el.dataset.edit) { el._before = readField(el); el._snap = planOnly(); } });
 document.addEventListener('input', e => { if (e.target.id === 'q') { ui.q = e.target.value; render(); return; } const el = e.target; if (el.dataset && el.dataset.edit) { writeEdit(el, readField(el)); save(); } });
 document.addEventListener('focusout', e => {
   const el = e.target; if (!el.dataset) return;
@@ -2039,11 +2136,11 @@ const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
 const SYNC_FOLDER = 'Daily Action Plan';
 const SYNC_EVERY = 60000;                                 // while the DAP is open and in view
 const NATIVE = !!(window.Capacitor && typeof Capacitor.getPlatform === 'function' && Capacitor.getPlatform() !== 'web' && window.capacitorExports);
-const Native = NATIVE ? (() => { const reg = capacitorExports.registerPlugin; return { auth: reg('DriveAuth'), notes: reg('LocalNotifications'), app: reg('App'), share: reg('Share'), fs: reg('Filesystem') }; })() : null;
+const Native = NATIVE ? (() => { const reg = capacitorExports.registerPlugin; return { auth: reg('DriveAuth'), notes: reg('LocalNotifications'), app: reg('App'), share: reg('Share'), fs: reg('Filesystem'), phone: reg('Phone') }; })() : null;
 const WEB_SYNC_OK = !NATIVE && (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1');
 const SYNC_POSSIBLE = (NATIVE || WEB_SYNC_OK) && !!GOOGLE.clientId;
 const LOCAL_ONLY = { settings: ['compact', 'printPersonal', 'updatedAt'], sections: ['collapsed'] };   // view choices that stay with each device
-const MERGED = ['sections', 'items', 'sets', 'reminders', 'handovers'];
+const MERGED = ['sections', 'items', 'sets', 'reminders', 'handovers', 'people', 'duty'];
 
 const sync = { on: false, state: 'off', busy: false, again: false, timer: null, last: null, error: null, token: null, tokenExp: 0, need: null, device: null, st: null, others: [], pendingPlan: null };
 // state: off | working | ok | offline | error | signin (permission needs to be given again)
@@ -2361,7 +2458,7 @@ function planChoiceHtml() {
   </div></div>`;
 }
 
-const TOUCH_KEY = `<p class="key"><b>Tap</b> a step or a task box to tick it. <b>Long-press</b> a step for its notes, smaller steps, a later date, a reminder or to strike it out. <b>&hellip;</b> beside a task: later, reminders, urgent, strike out. <b>Tap a task's ID</b> for its Details, where it can also be moved to another section or under another task. The <b>&#9662;</b> beside a section folds it away. The phone's <b>Back</b> button closes what is open.</p>`;
+const TOUCH_KEY = `<p class="key"><b>Tap</b> a step or a task box to tick it. <b>Long-press</b> a step for its notes, smaller steps, a later date, a reminder or to strike it out. <b>Swipe right</b> for the plant's organogram. <b>&hellip;</b> beside a task: later, reminders, urgent, strike out. <b>Tap a task's ID</b> for its Details, where it can also be moved to another section or under another task. The <b>&#9662;</b> beside a section folds it away. The phone's <b>Back</b> button closes what is open.</p>`;
 
 /* ---------- on the phone: alarms that sound with the DAP closed ---------- */
 const alarmId = (rid, k) => { let h = 0; for (const c of rid) h = (h * 31 + c.charCodeAt(0)) | 0; return ((h & 0x3ffffff) * 8 + k) | 0; };
@@ -2412,6 +2509,7 @@ async function startNative() {
     });
     Native.app.addListener('appStateChange', s => { if (s.isActive) { reminderTick(); syncSoon(300); } else { flush(); if (sync.on) syncOnce(); } });
     Native.app.addListener('backButton', () => {
+      if (orgBack()) return;
       if (ui.menuId) { ui.menuId = null; render(); }
       else if (sync.pendingPlan || store.state === 'choice') return;
       else if (ui.dialog) acts['close-dialog']();
@@ -2434,6 +2532,451 @@ function downloadBlob(blob, name) {
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
   document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
 }
+
+/* =====================================================================
+   9. Organogram of the plant, with one-tap calling and who is on duty (phone app)
+   Swipe right on the DAP to open it. People come from the plant's attendance report (PDF) or an organogram file;
+   numbers come from the phone's contacts. All of it is kept with the plan (this device and your Google Drive), never in the app's code.
+   ===================================================================== */
+const ORG_UNITS = [
+  { id: 'u-fm', name: 'Field Manager', parent: null, head: 'Field Manager', osd: true },
+  { id: 'u-prod', name: 'Production', parent: 'u-fm', head: 'Operations Manager' },
+  { id: 'u-prodops', name: 'Production Operations', parent: 'u-prod' },
+  { id: 'u-pefd', name: 'PE&FD', parent: 'u-prod', head: 'Head' },
+  { id: 'u-pf', name: 'Production Facilities', parent: 'u-pefd' },
+  { id: 'u-corr', name: 'Corrosion', parent: 'u-pefd' },
+  { id: 'u-tele', name: 'Telemetry', parent: 'u-pefd' },
+  { id: 'u-pp', name: 'Process & Plant', parent: 'u-fm', head: 'Plant Manager' },
+  { id: 'u-process', name: 'Process', parent: 'u-pp' },
+  { id: 'u-mech', name: 'Mechanical', parent: 'u-pp' },
+  { id: 'u-elect', name: 'Electrical', parent: 'u-pp' },
+  { id: 'u-inst', name: 'Instrument', parent: 'u-pp' },
+  { id: 'u-lab', name: 'Laboratory', parent: 'u-pp' },
+  { id: 'u-sw', name: 'Software', parent: 'u-pp' },
+];
+const POOL = '', GONE = 'gone';
+const ORG_ON = NATIVE;                  // the organogram is a phone-app feature
+const orgUi = { open: false, q: '', onDuty: false, sheet: null, picker: null, assign: null, msg: null, busy: null, contacts: null, review: false, folded: null };
+
+/* ---------- where someone goes, from the department and designation in the report (no names in here) ---------- */
+function autoUnit(p) {
+  const d = (p.desig || '').toLowerCase(), dep = p.dept || '';
+  if (dep === 'Production Ops.') return /telemetry/.test(d) ? 'u-tele' : 'u-prodops';
+  if (dep === 'PE&FD') return /\(corr/.test(d) ? 'u-corr' : /tele|\(inst/.test(d) ? 'u-tele' : 'u-pf';
+  if (dep === 'Process & Plant') {
+    if (/software/.test(d)) return 'u-sw';
+    if (/chemist|\blab\b|\(lab\)/.test(d)) return 'u-lab';
+    if (/\(inst/.test(d)) return 'u-inst';
+    if (/elect/.test(d)) return 'u-elect';
+    if (/\(mech|mechanic|fabricator|maint|fork/.test(d) || /^helper cl-/.test(d)) return 'u-mech';
+    if (/process|optr|attendant/.test(d)) return 'u-process';
+    return POOL;
+  }
+  return dep ? 'd:' + dep : POOL;
+}
+
+/* ---------- who is on duty: the latest day in the report that says anything about the person ---------- */
+const DAY_CODE = c => !c ? '' : c.in ? c.in : /^rota$/i.test(c.mark) ? 'R' : /^l$/i.test(c.mark) || /leave/i.test(c.mark) ? 'L' : /^a$/i.test(c.mark) ? 'A' : /^h$/i.test(c.mark) || /holiday/i.test(c.mark) ? 'H' : /saturday|sunday/i.test(c.mark) ? 'W' : '';
+function dutyFrom(codes) {            // codes: oldest to latest; a time means a check-in that day
+  let lastIn = null;
+  for (let k = codes.length - 1; k >= 0; k--) if (/\d/.test(codes[k])) { lastIn = k; break; }
+  for (let k = codes.length - 1; k >= 0; k--) {
+    const c = codes[k];
+    if (!c || c === 'W' || c === 'H') continue;          // a weekend or holiday with no check-in says nothing either way
+    if (/\d/.test(c)) return { s: 'on', why: '', at: k, lastIn };
+    return { s: 'off', why: c === 'R' ? 'Rota' : c === 'L' ? 'Leave' : 'Absent', at: k, lastIn };
+  }
+  return { s: '', why: 'No record', at: null, lastIn };
+}
+const dutyRec = () => (db.duty || []).find(d => d.id === 'duty') || null;
+function dutyOf(p) {
+  const d = dutyRec(); if (!d || !d.codes || !d.codes[p.emp]) return { s: '', why: 'Not in the latest report' };
+  const r = dutyFrom(d.codes[p.emp]);
+  return Object.assign(r, { lastInDay: r.lastIn === null ? null : addDays(d.from, r.lastIn), lastInAt: r.lastIn === null ? null : d.codes[p.emp][r.lastIn] });
+}
+
+/* ---------- reading the attendance report (PDF) ---------- */
+function parseAttendance(pages) {
+  const dayRe = /^(\d{2})\/(\d{2})\/(\d{4})$/, timeRe = /^\d{1,2}:\d{2}$/;
+  const people = []; let from = null, to = null;
+  for (const page of pages) {
+    const items = page.items.filter(i => i.str && i.str.trim()).map(i => ({ s: i.str.trim(), x: i.x, y: i.y, w: i.w || 0, r: i.x + (i.w || 0) }));
+    const head = k => items.find(i => i.s === k);
+    const hEmp = head('Emp #'), hName = head('Name'), hDes = head('Designation'), hDep = head('Department'), hPay = head('PayGrade'), hSt = head('Status');
+    if (!hEmp || !hName || !hDes || !hDep || !hPay) continue;
+    const dates = items.filter(i => dayRe.test(i.s) && Math.abs(i.y - hEmp.y) < 25).sort((a, b) => a.x - b.x);
+    if (!dates.length) continue;
+    const iso = s => { const m = dayRe.exec(s); return `${m[3]}-${m[2]}-${m[1]}`; };
+    const dayCols = dates.map(d => ({ day: iso(d.s), c: d.x + d.w / 2, l: d.x, r: d.r }));
+    for (const d of dayCols) { if (!from || d.day < from) from = d.day; if (!to || d.day > to) to = d.day; }
+    const cols = [['emp', hEmp.x - 4], ['name', hName.x - 4], ['desig', hDes.x - 4], ['dept', hDep.x - 4], ['grade', hPay.x - 4], ['status', hSt ? hSt.x - 4 : hPay.r + 4], ['days', dayCols[0].l - 4]];
+    const colOf = x => { let k = null; for (const [n, l] of cols) if (x >= l) k = n; return k; };
+    const headBottom = Math.max(hEmp.y, ...dates.map(d => d.y)) + 14;
+    const body = items.filter(i => i.y > headBottom);
+    const anchors = body.filter(i => colOf(i.x) === 'emp' && /^\d{5,}$/.test(i.s)).sort((a, b) => a.y - b.y);
+    anchors.forEach((a, k) => {
+      const top = k ? (anchors[k - 1].y + a.y) / 2 : headBottom, bottom = k < anchors.length - 1 ? (a.y + anchors[k + 1].y) / 2 : Infinity;
+      const mine = body.filter(i => i.y >= top && i.y < bottom && i !== a).sort((p, q) => p.y - q.y || p.x - q.x);
+      const text = col => mine.filter(i => colOf(i.x) === col).map(i => i.s).join(' ').replace(/\s+/g, ' ').trim();
+      const p = { emp: a.s, name: text('name'), desig: text('desig').replace(/CL-\s+/g, 'CL-').replace(/\s+/g, ' '), dept: text('dept'), grade: text('grade'), days: {} };
+      for (const d of dayCols) {
+        const cell = mine.filter(i => colOf(i.x) === 'days' && Math.abs((i.x + i.w / 2) - d.c) < (d.r - d.l) / 2 + 6).sort((p, q) => p.y - q.y);
+        const times = cell.filter(i => timeRe.test(i.s)).map(i => i.s);
+        p.days[d.day] = times.length ? { in: times[0], out: times[1] || null } : { mark: cell.map(i => i.s).join(' ') };
+      }
+      people.push(p);
+    });
+  }
+  return { from, to, people };
+}
+let pdfLib = null;
+async function readPdfPages(buf) {
+  if (!pdfLib) { pdfLib = await import('./pdfjs/pdf.min.mjs'); pdfLib.GlobalWorkerOptions.workerSrc = './pdfjs/pdf.worker.min.mjs'; }
+  const doc = await pdfLib.getDocument({ data: new Uint8Array(buf) }).promise, pages = [];
+  for (let n = 1; n <= doc.numPages; n++) {
+    const pg = await doc.getPage(n), vp = pg.getViewport({ scale: 1 }), tc = await pg.getTextContent();
+    pages.push({ items: tc.items.map(i => ({ str: i.str, x: i.transform[4], y: vp.height - i.transform[5], w: i.width })) });
+  }
+  return pages;
+}
+
+/* ---------- bringing people in ---------- */
+const personByEmp = emp => (db.people || []).find(p => p.emp === emp);
+function newPerson(r, unit) { const t = nowIso(); return { id: 'emp-' + r.emp, emp: r.emp, name: r.name, desig: r.desig, dept: r.dept, grade: r.grade, unit, role: '', phone: '', phoneName: '', createdAt: t, updatedAt: t }; }
+function applyReport(rep) {           // -> a line saying what changed
+  const list = rep.people.filter(r => r.emp && !/unauthori[sz]ed/i.test(r.desig) && !/unallocated/i.test(r.grade));
+  if (!list.length || !rep.from || !rep.to) throw new Error('No people found in this file. Is it the Custom Daily Attendance Report?');
+  let added = 0, updated = 0;
+  for (const r of list) {
+    const p = personByEmp(r.emp);
+    if (!p) { db.people.push(newPerson(r, autoUnit(r))); added++; continue; }
+    let ch = false;
+    for (const k of ['name', 'desig', 'dept', 'grade']) if (r[k] && p[k] !== r[k]) { p[k] = r[k]; ch = true; }
+    if (ch) { p.updatedAt = nowIso(); updated++; }
+  }
+  const old = dutyRec();
+  let dutyNote = '';
+  if (!old || rep.to >= old.to) {
+    const codes = {}, days = [];
+    for (let d = rep.from; d <= rep.to; d = addDays(d, 1)) days.push(d);
+    for (const r of list) codes[r.emp] = days.map(d => DAY_CODE(r.days[d]));
+    db.duty = [{ id: 'duty', from: rep.from, to: rep.to, codes, importedAt: nowIso(), updatedAt: nowIso() }];
+    dutyNote = `Duty now follows the report for ${shortDate(rep.from)} to ${shortDate(rep.to)}.`;
+  } else dutyNote = `This report ends ${shortDate(rep.to)}, earlier than the one in use (${shortDate(old.to)}), so duty was left as it was.`;
+  return `${plural(list.length, 'person', 'people')} in the report: ${added} new, ${updated} with changed details. ${dutyNote}${added ? ' New people are placed by department and designation; any that could not be placed are under "Not placed yet".' : ''}`;
+}
+function importOrgFile(data) {
+  if (!data || data.kind !== 'dap-organogram' || !Array.isArray(data.people)) throw new Error('This is not a DAP organogram file.');
+  let n = 0;
+  for (const q of data.people) {
+    if (!q.emp) continue;
+    const p = personByEmp(q.emp), t = nowIso();
+    const rec = Object.assign({}, p || {}, q, { id: 'emp-' + q.emp, updatedAt: t, createdAt: (p && p.createdAt) || t });
+    if (p && p.phone && !q.phone) { rec.phone = p.phone; rec.phoneName = p.phoneName; }       // a number already chosen here is kept
+    if (p) Object.assign(p, rec); else db.people.push(rec);
+    n++;
+  }
+  if (data.duty && data.duty.codes) { const old = dutyRec(); if (!old || data.duty.to >= old.to) db.duty = [Object.assign({}, data.duty, { id: 'duty', updatedAt: nowIso() })]; }
+  return `${plural(n, 'person', 'people')} loaded from the organogram file.`;
+}
+function exportOrg() {
+  const data = { kind: 'dap-organogram', version: 1, exportedAt: nowIso(), people: db.people.map(p => { const c = Object.assign({}, p); delete c.updatedAt; delete c.createdAt; return c; }), duty: dutyRec() };
+  const blob = new Blob([JSON.stringify(data, null, 1)], { type: 'application/json' }), name = `KPD-TAY organogram ${today()}.json`;
+  if (NATIVE) return shareFile(blob, name); downloadBlob(blob, name);
+}
+async function importFile(file) {
+  orgUi.busy = 'Reading ' + file.name + '…'; orgUi.msg = null; renderOrg();
+  try {
+    const buf = await file.arrayBuffer(); let note;
+    const head = new Uint8Array(buf.slice(0, 5)), isPdf = String.fromCharCode(...head) === '%PDF-';
+    if (isPdf) { const rep = parseAttendance(await readPdfPages(buf)); orgChange(() => { note = applyReport(rep); }); }
+    else { const data = JSON.parse(new TextDecoder().decode(buf)); orgChange(() => { note = importOrgFile(data); }); }
+    orgUi.msg = { ok: true, text: note };
+  } catch (e) { orgUi.msg = { ok: false, text: 'The file could not be read: ' + (e.message || e) }; }
+  orgUi.busy = null; renderOrg();
+}
+
+/* ---------- names in the report matched to names in the phone's contacts ---------- */
+const NAME_VARIANTS = { mohammad: 'muhammad', muhammed: 'muhammad', mohammed: 'muhammad', mohamed: 'muhammad', mohd: 'muhammad', muhamamd: 'muhammad', muhamad: 'muhammad', md: 'muhammad', ahmed: 'ahmad', hussein: 'hussain', husain: 'hussain', hassan: 'hasan', sayed: 'syed', syyed: 'syed', sayyed: 'syed', rehman: 'rahman', ullah: 'ullah' };
+const NAME_LIGHT = { muhammad: 0.15, m: 0, syed: 0.3, ahmad: 0.45, ali: 0.45, khan: 0.45, hussain: 0.45, abdul: 0.35, ul: 0, ud: 0, e: 0, ur: 0, din: 0.35, shah: 0.5, sheikh: 0.4, mir: 0.4 };
+const NOT_NAMES = new Set(['ogdcl', 'kpd', 'tay', 'kunnar', 'sir', 'engr', 'eng', 'engineer', 'sb', 'sahib', 'sahab', 'saab', 'mr', 'dr', 'process', 'mech', 'mechanical', 'elect', 'electrical', 'inst', 'instrument', 'prod', 'production', 'plant', 'office', 'pp', 'pefd', 'lab', 'hr', 'mmd', 'hseq', 'security', 'driver', 'optr', 'operator', 'new', 'old', 'work', 'home', 'pk', 'boss', 'field', 'manager', 'fm', 'om', 'pm', 'gm', 'dgm', 'tele', 'telemetry', 'admin']);
+const nameTokens = s => String(s || '').toLowerCase().replace(/[^a-z\s]/g, ' ').split(/\s+/).filter(Boolean).map(t => NAME_VARIANTS[t] || t);
+function nameScore(person, contactName) {
+  const pt = nameTokens(person), ct = nameTokens(contactName); if (!pt.length || !ct.length) return 0;
+  const cjoin = ct.join(''), cset = new Set(ct);
+  let have = 0, all = 0, strong = false;
+  for (const t of pt) { const w = NAME_LIGHT[t] ?? 1; all += w; if (cset.has(t) || (t.length >= 4 && cjoin.includes(t))) { have += w; if (w >= 1) strong = true; } }
+  if (!all) return 0;
+  const pjoin = pt.join(''), pset = new Set(pt);
+  let extra = 0; for (const t of ct) if (t.length >= 3 && !pset.has(t) && !NOT_NAMES.has(t) && !pjoin.includes(t)) extra += (NAME_LIGHT[t] ?? 1) * 0.3;
+  const score = Math.max(0, have / all - extra);
+  return strong ? score : score * 0.6;          // a name made only of common words (Muhammad Ali) is offered, never linked by itself
+}
+function bestNumber(c) {
+  const ns = c.numbers || []; if (!ns.length) return '';
+  const pick = ns.find(n => n.primary) || ns.find(n => /mobile/i.test(n.type || '')) || ns[0];
+  return pick.number;
+}
+function suggestFor(p, contacts) {
+  return contacts.map(c => ({ c, s: nameScore(p.name, c.name) })).filter(x => x.s >= 0.5).sort((a, b) => b.s - a.s).slice(0, 6);
+}
+function matchContacts(contacts) {           // links people whose name matches exactly one contact clearly; -> counts
+  const best = new Map();
+  const want = db.people.filter(p => p.unit !== GONE && !p.phone);
+  for (const p of want) {
+    const s = suggestFor(p, contacts);
+    if (s.length && s[0].s >= 0.95 && (s.length < 2 || s[0].s - s[1].s >= 0.25) && bestNumber(s[0].c)) best.set(p.emp, s[0].c);
+  }
+  const used = new Map(); for (const c of best.values()) used.set(c.id, (used.get(c.id) || 0) + 1);
+  let linked = 0, choose = 0;
+  for (const p of want) {
+    const c = best.get(p.emp);
+    if (c && used.get(c.id) === 1) { p.phone = bestNumber(c); p.phoneName = c.name; p.updatedAt = nowIso(); linked++; }
+    else if (suggestFor(p, contacts).length) choose++;
+  }
+  return { linked, choose, none: want.length - linked - choose };
+}
+async function loadContacts() {
+  if (orgUi.contacts) return orgUi.contacts;
+  if (!NATIVE) throw new Error('Contacts can be read in the phone app only.');
+  const r = await Native.phone.contacts();
+  orgUi.contacts = (r.contacts || []).filter(c => c.name && (c.numbers || []).length);
+  return orgUi.contacts;
+}
+async function callPerson(p) {
+  if (!p || !p.phone) return;
+  if (NATIVE) { try { await Native.phone.call({ number: p.phone }); } catch (e) { orgUi.msg = { ok: false, text: 'The call could not be started (' + (e.message || e) + ').' }; renderOrg(); } }
+  else location.href = 'tel:' + p.phone.replace(/[^\d+]/g, '');
+}
+
+/* ---------- changes to the organogram: saved and synced like the plan, but kept out of the plan's Undo ---------- */
+function orgChange(fn) { fn(); save(); renderOrg(); }
+function placeIn(p, unit, role) {
+  if (role === 'head' || role === 'reliever') for (const q of db.people) if (q !== p && q.unit === unit && q.role === role) { q.role = ''; q.updatedAt = nowIso(); }
+  p.unit = unit; p.role = role || ''; p.updatedAt = nowIso();
+}
+
+/* ---------- the page ---------- */
+const gradeRank = g => { const m = /^(EG|NMG)-?(\d+)/i.exec(g || ''); return m ? (m[1].toUpperCase() === 'EG' ? 100 : 0) + +m[2] : -1; };
+const bySenior = (a, b) => gradeRank(b.grade) - gradeRank(a.grade) || a.name.localeCompare(b.name);
+const isOfficer = p => /^EG/i.test(p.grade || '');
+function orgUnits() {
+  const deps = new Map();
+  for (const p of db.people) if (p.unit && p.unit.startsWith('d:')) deps.set(p.unit, (deps.get(p.unit) || 0) + 1);
+  const extra = [...deps.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).map(([id]) => ({ id, name: id.slice(2), parent: 'u-fm', head: 'Head', dept: true }));
+  return [...ORG_UNITS, ...extra];
+}
+const unitName = id => id === POOL ? 'Not placed yet' : id === GONE ? 'Not at KPD-TAY' : (orgUnits().find(u => u.id === id) || { name: id.replace(/^d:/, '') }).name;
+const roleName = (p, u) => p.role === 'head' ? (u && u.head) || 'In-charge' : p.role === 'reliever' ? 'Reliever' : p.role === 'osd' ? 'OSD' : '';
+const PHONE_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.25 11.4 11.4 0 0 0 3.6.57 1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.25.2 2.45.57 3.57a1 1 0 0 1-.25 1z"/></svg>';
+function personRow(p, u) {
+  const d = dutyOf(p), role = roleName(p, u);
+  const off = d.s === 'off', on = d.s === 'on';
+  const call = p.phone ? `<button class="pcall" data-act="org-call" data-emp="${esc(p.emp)}" aria-label="Call ${esc(p.name)}">${PHONE_SVG}</button>` : `<button class="plink" data-act="org-pick" data-emp="${esc(p.emp)}" aria-label="Choose a number for ${esc(p.name)}">+ No.</button>`;
+  return `<div class="prow${off ? ' off' : ''}" data-act="org-person" data-emp="${esc(p.emp)}">
+    <span class="dot ${on ? 'on' : off ? 'off' : 'unk'}" title="${on ? 'On duty' : off ? 'Off: ' + esc(d.why) : 'Not known'}"></span>
+    <div class="pmain"><div class="pname">${hiOrg(p.name)}${role ? ` <span class="prole">${esc(role)}</span>` : ''}</div><div class="pdesc">${hiOrg(p.desig)} &middot; ${esc(p.grade)}${off ? ` &middot; <i>${esc(d.why === 'Rota' ? 'on rota' : d.why.toLowerCase())}</i>` : ''}</div></div>
+    ${call}
+  </div>`;
+}
+function hiOrg(s) {
+  const t = orgUi.q.trim().toLowerCase(); if (!t) return esc(s);
+  const i = String(s).toLowerCase().indexOf(t); if (i < 0) return esc(s);
+  return esc(s.slice(0, i)) + '<mark>' + esc(s.slice(i, i + t.length)) + '</mark>' + esc(s.slice(i + t.length));
+}
+const shown = p => !orgUi.onDuty || dutyOf(p).s === 'on';
+function unitHtml(u, units, level) {
+  const kids = units.filter(c => c.parent === u.id);
+  const mine = db.people.filter(p => p.unit === u.id);
+  const all = [], walk = id => { for (const p of db.people) if (p.unit === id) all.push(p); for (const c of units) if (c.parent === id) walk(c.id); }; walk(u.id);
+  const onN = all.filter(p => dutyOf(p).s === 'on').length;
+  const folded = orgFolded(u.id, level);
+  const head = mine.find(p => p.role === 'head'), rel = mine.find(p => p.role === 'reliever'), osd = mine.filter(p => p.role === 'osd');
+  const rest = mine.filter(p => !p.role || (p.role === 'osd' && !u.osd)).sort(bySenior);
+  const post = (p, role, title) => p ? (shown(p) ? personRow(p, u) : '') : u.dept ? '' : `<div class="prow vacant" data-act="org-assign" data-unit="${esc(u.id)}" data-role="${role}"><span class="dot unk"></span><div class="pmain"><div class="pname">${esc(title)}</div><div class="pdesc">Not set &middot; tap to choose</div></div></div>`;
+  const officers = rest.filter(isOfficer).filter(shown), staff = rest.filter(p => !isOfficer(p)).filter(shown);
+  return `<section class="ounit lv${level}${folded ? ' folded' : ''}" data-unit="${esc(u.id)}">
+    <header class="ohead" data-act="org-fold" data-unit="${esc(u.id)}"><span class="chev" aria-hidden="true">&#9662;</span><span class="oname">${esc(u.name)}</span><span class="ocount">${all.length ? `<b>${onN}</b>/${all.length} on duty` : 'nobody yet'}</span></header>
+    ${folded ? '' : `<div class="obody">
+      ${post(head, 'head', u.head || 'In-charge')}
+      ${post(rel, 'reliever', 'Reliever')}
+      ${u.osd ? osd.filter(shown).map(p => personRow(p, u)).join('') : ''}
+      ${kids.map(c => unitHtml(c, units, level + 1)).join('')}
+      ${officers.length ? `<div class="ogroup">Officers</div>${officers.map(p => personRow(p, u)).join('')}` : ''}
+      ${staff.length ? `<div class="ogroup">Staff</div>${staff.map(p => personRow(p, u)).join('')}` : ''}
+    </div>`}
+  </section>`;
+}
+function orgFolded(id, level) {
+  if (!orgUi.folded) { try { orgUi.folded = JSON.parse(localStorage.getItem('dap.orgFolded') || 'null'); } catch (e) { } }
+  if (!orgUi.folded) orgUi.folded = {};
+  return id in orgUi.folded ? orgUi.folded[id] : (level >= 2 || id.startsWith('d:') || id === 'gone');      // sections and the other departments start folded
+}
+function orgHtml() {
+  const d = dutyRec(), people = db.people || [];
+  const age = d ? Math.round((dayToDate(today()) - dayToDate(d.to)) / 864e5) : null;
+  const units = orgUnits();
+  const pool = people.filter(p => !p.unit).sort(bySenior), gone = people.filter(p => p.unit === GONE).sort(bySenior);
+  let main;
+  if (!people.length) main = `<div class="oempty"><p>No people yet. Load the plant's attendance report (PDF) or an organogram file to build the organogram.</p><button class="btn primary" data-act="org-import">Load a file</button></div>`;
+  else if (orgUi.q.trim()) {
+    const t = orgUi.q.trim().toLowerCase();
+    const hits = people.filter(p => p.unit !== GONE && shown(p) && (p.name + ' ' + p.desig + ' ' + p.emp + ' ' + p.dept + ' ' + unitName(p.unit)).toLowerCase().includes(t)).sort(bySenior);
+    main = `<div class="ohits">${hits.length ? hits.map(p => personRow(p, units.find(u => u.id === p.unit))).join('') : '<p class="none">Nobody matches.</p>'}</div>`;
+  } else if (orgUi.review) {
+    const list = people.filter(p => p.unit !== GONE && !p.phone).sort(bySenior);
+    main = `<div class="oreview"><div class="ogroup">Without a number (${list.length}). Tap &ldquo;+ No.&rdquo; to choose from your contacts.</div>${list.map(p => personRow(p, units.find(u => u.id === p.unit))).join('')}</div>`;
+  } else {
+    main = `${pool.length ? `<section class="ounit lv1 pool${orgFolded('pool', 1) ? ' folded' : ''}" data-unit="pool"><header class="ohead" data-act="org-fold" data-unit="pool"><span class="chev">&#9662;</span><span class="oname">Not placed yet</span><span class="ocount">${pool.length}</span></header>${orgFolded('pool', 1) ? '' : `<div class="obody"><p class="ohint">Tap a person, then choose where they go.</p>${pool.filter(shown).map(p => personRow(p, null)).join('')}</div>`}</section>` : ''}
+      ${units.filter(u => !u.parent).map(u => unitHtml(u, units, 0)).join('')}
+      ${gone.length ? `<section class="ounit lv1 gone${orgFolded('gone', 1) ? ' folded' : ''}" data-unit="gone"><header class="ohead" data-act="org-fold" data-unit="gone"><span class="chev">&#9662;</span><span class="oname">Not at KPD-TAY</span><span class="ocount">${gone.length}</span></header>${orgFolded('gone', 1) ? '' : `<div class="obody">${gone.map(p => personRow(p, null)).join('')}</div>`}</section>` : ''}`;
+  }
+  return `<div class="otop">
+      <div class="otitle"><button class="btn quiet oback" data-act="org-close" aria-label="Back to the DAP">&#8249;</button><h2>KPD-TAY</h2><button class="btn quiet omenu" data-act="org-menu" aria-label="More">&#8943;</button></div>
+      <div class="obar"><input type="search" id="oq" class="qbox" placeholder="Search name, post, section" value="${esc(orgUi.q)}" autocomplete="off" spellcheck="false" aria-label="Search people">
+        <button class="tog" role="switch" aria-checked="${orgUi.onDuty}" data-act="org-onduty">On duty only<span class="sw" aria-hidden="true"></span></button></div>
+      <div class="oduty${age !== null && age > 3 ? ' old' : ''}">${d ? `Duty from the attendance report ${shortDate(d.from)}&ndash;${shortDate(d.to)}${age > 0 ? ` &middot; ${plural(age, 'day')} old` : ''}` : 'No attendance report loaded yet'}</div>
+      ${orgUi.menu ? `<div class="omenulist">
+        <button class="btn" data-act="org-import">Load attendance report or organogram file</button>
+        <button class="btn" data-act="org-match">Match numbers from my contacts</button>
+        <button class="btn" data-act="org-review">${orgUi.review ? 'Show the organogram' : 'People without a number'}</button>
+        <button class="btn" data-act="org-export">${NATIVE ? 'Send' : 'Save'} a copy of the organogram</button></div>` : ''}
+      ${orgUi.busy ? `<div class="notice"><p>${esc(orgUi.busy)}</p></div>` : orgUi.msg ? `<div class="notice${orgUi.msg.ok ? '' : ' bad'}"><p>${esc(orgUi.msg.text)}</p><button class="btn quiet" data-act="org-msg-off">OK</button></div>` : ''}
+    </div>
+    <div class="otree">${main}</div>
+    ${orgUi.sheet ? personSheet() : ''}${orgUi.picker ? pickerSheet() : ''}${orgUi.assign ? assignSheet() : ''}
+    <input type="file" id="orgfile" accept="application/pdf,.pdf,application/json,.json" hidden>`;
+}
+function personSheet() {
+  const p = personByEmp(orgUi.sheet); if (!p) return '';
+  const u = orgUnits().find(x => x.id === p.unit), d = dutyOf(p), rec = dutyRec();
+  const codes = rec && rec.codes[p.emp] ? rec.codes[p.emp] : [];
+  const strip = codes.slice(-7).map((c, k) => { const day = addDays(rec.to, k - Math.min(7, codes.length) + 1); return `<span class="dc ${/\d/.test(c) ? 'on' : c === 'W' || c === 'H' ? 'we' : c ? 'off' : ''}" title="${shortDate(day)}"><b>${weekday(day).slice(0, 2)}</b>${/\d/.test(c) ? esc(c) : esc({ R: 'Rota', L: 'Leave', A: 'Abs', W: '–', H: 'Hol' }[c] || '')}</span>`; }).join('');
+  const opts = [[POOL, 'Not placed yet'], ...orgUnits().map(x => [x.id, (x.parent && x.parent !== 'u-fm' ? unitName(x.parent) + ' › ' : '') + x.name]), [GONE, 'Not at KPD-TAY']];
+  const roles = [['', 'Member'], ['head', (u && u.head) || 'In-charge'], ['reliever', 'Reliever']].concat(u && u.osd ? [['osd', 'OSD']] : []);
+  return `<div class="osheet-veil" data-act="org-sheet-off"><div class="osheet" role="dialog" aria-label="${esc(p.name)}" data-stop="1">
+    <div class="sh-grip"></div>
+    <h3>${esc(p.name)}</h3>
+    <p class="sh-sub">${esc(p.desig)} &middot; ${esc(p.grade)} &middot; ${esc(p.dept)} &middot; #${esc(p.emp)}</p>
+    <div class="sh-duty ${d.s}">${d.s === 'on' ? `On duty${d.lastInAt ? ` &middot; checked in ${esc(d.lastInAt)} on ${shortDate(d.lastInDay)}` : ''}` : d.s === 'off' ? `Off &middot; ${esc(d.why)}${d.lastInDay ? ` &middot; last checked in ${shortDate(d.lastInDay)}` : ''}` : esc(d.why || 'Not known')}</div>
+    ${strip ? `<div class="sh-strip">${strip}</div>` : ''}
+    <div class="sh-row"><span class="sh-k">Number</span><span class="sh-v">${p.phone ? `${esc(p.phone)}${p.phoneName ? `<small>from &ldquo;${esc(p.phoneName)}&rdquo;</small>` : ''}` : '<i>none yet</i>'}</span>
+      ${p.phone ? `<button class="btn callbtn" data-act="org-call" data-emp="${esc(p.emp)}">${PHONE_SVG} Call</button>` : ''}<button class="btn" data-act="org-pick" data-emp="${esc(p.emp)}">${p.phone ? 'Change' : 'Choose'}</button></div>
+    <label class="sh-row"><span class="sh-k">Place</span><select data-change="org-unit" data-emp="${esc(p.emp)}">${opts.map(([v, n]) => `<option value="${esc(v)}"${(p.unit || '') === v ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select></label>
+    ${p.unit && p.unit !== GONE ? `<label class="sh-row"><span class="sh-k">Role</span><select data-change="org-role" data-emp="${esc(p.emp)}">${roles.map(([v, n]) => `<option value="${v}"${(p.role || '') === v ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select></label>` : ''}
+    <div class="sh-foot"><button class="btn" data-act="org-sheet-off">Done</button></div>
+  </div></div>`;
+}
+function pickerSheet() {
+  const p = personByEmp(orgUi.picker.emp); if (!p) return '';
+  const cs = orgUi.contacts || [], q = (orgUi.picker.q || '').trim().toLowerCase();
+  const sug = q ? [] : suggestFor(p, cs).map(x => x.c);
+  const list = q ? cs.filter(c => c.name.toLowerCase().includes(q) || (c.numbers || []).some(n => n.number.replace(/\D/g, '').includes(q.replace(/\D/g, '') || '¤'))).slice(0, 60) : sug;
+  const row = c => (c.numbers || []).map(n => `<button class="crow" data-act="org-setnum" data-emp="${esc(p.emp)}" data-num="${esc(n.number)}" data-cname="${esc(c.name)}"><span class="cname">${esc(c.name)}</span><span class="cnum">${esc(n.number)}${n.type ? ` <small>${esc(n.type)}</small>` : ''}</span></button>`).join('');
+  return `<div class="osheet-veil" data-act="org-picker-off"><div class="osheet" role="dialog" aria-label="Number for ${esc(p.name)}" data-stop="1">
+    <div class="sh-grip"></div>
+    <h3>Number for ${esc(p.name)}</h3>
+    ${orgUi.picker.error ? `<div class="notice bad"><p>${esc(orgUi.picker.error)}</p></div>` : ''}
+    <input type="search" id="cq" class="qbox" placeholder="Search your contacts" value="${esc(orgUi.picker.q || '')}" autocomplete="off" aria-label="Search contacts">
+    <div class="clist">${!cs.length && !orgUi.picker.error ? '<p class="none">Reading your contacts…</p>' : list.length ? (q ? '' : '<div class="ogroup">Likely matches</div>') + list.map(row).join('') : `<p class="none">${q ? 'No contact matches.' : 'No likely match. Search your contacts above.'}</p>`}</div>
+    <div class="sh-row"><input type="tel" id="typednum" class="qbox" placeholder="Or type a number" inputmode="tel"><button class="btn" data-act="org-typenum" data-emp="${esc(p.emp)}">Use</button></div>
+    <div class="sh-foot">${p.phone ? `<button class="btn quiet" data-act="org-clearnum" data-emp="${esc(p.emp)}">Remove number</button>` : ''}<button class="btn" data-act="org-picker-off">Cancel</button></div>
+  </div></div>`;
+}
+function assignSheet() {
+  const a = orgUi.assign, u = orgUnits().find(x => x.id === a.unit); if (!u) return '';
+  const q = (a.q || '').trim().toLowerCase();
+  const inside = [], walk = id => { for (const p of db.people) if (p.unit === id) inside.push(p); for (const c of orgUnits()) if (c.parent === id) walk(c.id); }; walk(u.id);
+  const pool = q ? db.people.filter(p => p.unit !== GONE && (p.name + ' ' + p.desig).toLowerCase().includes(q)) : inside;
+  const list = pool.sort(bySenior).slice(0, 80);
+  const title = a.role === 'head' ? (u.head || 'In-charge') : 'Reliever';
+  return `<div class="osheet-veil" data-act="org-assign-off"><div class="osheet" role="dialog" aria-label="${esc(title)}" data-stop="1">
+    <div class="sh-grip"></div>
+    <h3>${esc(title)}, ${esc(u.name)}</h3>
+    <input type="search" id="aq" class="qbox" placeholder="Search everyone" value="${esc(a.q || '')}" autocomplete="off" aria-label="Search people">
+    <div class="clist">${q ? '' : `<div class="ogroup">In ${esc(u.name)}, most senior first</div>`}${list.map(p => `<button class="crow" data-act="org-assign-to" data-emp="${esc(p.emp)}"><span class="cname">${esc(p.name)}</span><span class="cnum">${esc(p.desig)} &middot; ${esc(p.grade)}${q ? ` &middot; ${esc(unitName(p.unit))}` : ''}</span></button>`).join('') || '<p class="none">Nobody here yet. Search everyone above.</p>'}</div>
+    <div class="sh-foot"><button class="btn" data-act="org-assign-off">Cancel</button></div>
+  </div></div>`;
+}
+function renderOrg() {
+  const box = $('#org'); if (!box) return;
+  if (!orgUi.open || !db) { if (!box.hidden) { box.hidden = true; box.innerHTML = ''; document.body.classList.remove('org-open'); } return; }
+  const tree = $('.otree', box), y = tree ? tree.scrollTop : 0, f = document.activeElement, fid = f && f.id, fpos = f && f.selectionStart;
+  const clist = $('.clist', box), cy = clist ? clist.scrollTop : 0;
+  box.innerHTML = orgHtml(); box.hidden = false; document.body.classList.add('org-open');
+  const t2 = $('.otree', box); if (t2) t2.scrollTop = y;
+  const c2 = $('.clist', box); if (c2) c2.scrollTop = cy;
+  if (fid && $('#' + fid, box)) { const el = $('#' + fid, box); el.focus(); try { el.setSelectionRange(fpos, fpos); } catch (e) { } }
+}
+function openOrg() { orgUi.open = true; orgUi.menu = false; renderOrg(); }
+function closeOrg() { orgUi.open = false; orgUi.sheet = orgUi.picker = orgUi.assign = null; orgUi.menu = false; renderOrg(); }
+function orgBack() {           // the phone's Back button while the organogram is open; true if it did something
+  if (!orgUi.open) return false;
+  if (orgUi.picker) orgUi.picker = null; else if (orgUi.assign) orgUi.assign = null; else if (orgUi.sheet) orgUi.sheet = null;
+  else if (orgUi.menu) orgUi.menu = false; else if (orgUi.q) orgUi.q = ''; else if (orgUi.review) orgUi.review = false; else { closeOrg(); return true; }
+  renderOrg(); return true;
+}
+async function openPicker(emp) {
+  orgUi.picker = { emp, q: '', error: null }; renderOrg();
+  try { await loadContacts(); } catch (e) { orgUi.picker.error = (e.message || String(e)) + ' You can still type a number below.'; }
+  renderOrg();
+}
+const orgActs = {
+  'org-close'() { closeOrg(); },
+  'org-menu'() { orgUi.menu = !orgUi.menu; renderOrg(); },
+  'org-msg-off'() { orgUi.msg = null; renderOrg(); },
+  'org-onduty'() { orgUi.onDuty = !orgUi.onDuty; renderOrg(); },
+  'org-fold'(el) { const id = el.dataset.unit, lv = +((el.closest('.ounit').className.match(/lv(\d)/) || [0, 1])[1]); orgUi.folded[id] = !orgFolded(id, lv); try { localStorage.setItem('dap.orgFolded', JSON.stringify(orgUi.folded)); } catch (e) { } renderOrg(); },
+  'org-person'(el) { orgUi.sheet = el.dataset.emp; orgUi.menu = false; renderOrg(); },
+  'org-sheet-off'(el, e) { if (e && e.target.closest('[data-stop]') && !e.target.closest('[data-act="org-sheet-off"].btn')) return; orgUi.sheet = null; renderOrg(); },
+  'org-call'(el) { callPerson(personByEmp(el.dataset.emp)); },
+  'org-pick'(el) { openPicker(el.dataset.emp); },
+  'org-picker-off'(el, e) { if (e && e.target.closest('[data-stop]') && !e.target.closest('.btn')) return; orgUi.picker = null; renderOrg(); },
+  'org-setnum'(el) { const p = personByEmp(el.dataset.emp); orgUi.picker = null; if (p) orgChange(() => { p.phone = el.dataset.num; p.phoneName = el.dataset.cname || ''; p.updatedAt = nowIso(); }); },
+  'org-typenum'(el) { const v = ($('#typednum') || {}).value || '', p = personByEmp(el.dataset.emp); if (!/\d{5,}/.test(v.replace(/\D/g, ''))) return; orgUi.picker = null; if (p) orgChange(() => { p.phone = v.trim(); p.phoneName = ''; p.updatedAt = nowIso(); }); },
+  'org-clearnum'(el) { const p = personByEmp(el.dataset.emp); orgUi.picker = null; if (p) orgChange(() => { p.phone = ''; p.phoneName = ''; p.updatedAt = nowIso(); }); },
+  'org-assign'(el) { orgUi.assign = { unit: el.dataset.unit, role: el.dataset.role, q: '' }; renderOrg(); },
+  'org-assign-off'(el, e) { if (e && e.target.closest('[data-stop]') && !e.target.closest('.btn')) return; orgUi.assign = null; renderOrg(); },
+  'org-assign-to'(el) { const a = orgUi.assign, p = personByEmp(el.dataset.emp); orgUi.assign = null; if (p && a) orgChange(() => placeIn(p, a.unit, a.role)); },
+  'org-import'() { orgUi.menu = false; const f = $('#orgfile'); if (f) f.click(); },
+  'org-export'() { orgUi.menu = false; renderOrg(); exportOrg(); },
+  'org-review'() { orgUi.review = !orgUi.review; orgUi.menu = false; renderOrg(); },
+  async 'org-match'() {
+    orgUi.menu = false; orgUi.busy = 'Reading your contacts…'; renderOrg();
+    try { const cs = await loadContacts(); let r; orgChange(() => { r = matchContacts(cs); }); orgUi.msg = { ok: true, text: `${plural(r.linked, 'person', 'people')} linked to a contact automatically. ${r.choose} have possible matches to choose from, and ${r.none} were not found in your contacts. Use "People without a number" in the menu to go through them.` }; }
+    catch (e) { orgUi.msg = { ok: false, text: 'Your contacts could not be read (' + (e.message || e) + ').' }; }
+    orgUi.busy = null; renderOrg();
+  },
+};
+Object.assign(acts, orgActs);
+
+/* ---------- swiping right on the DAP opens it; swiping left closes it ---------- */
+(() => {
+  let sx = 0, sy = 0, st = 0, ok = false;
+  document.addEventListener('touchstart', e => {
+    const t = e.touches[0]; sx = t.clientX; sy = t.clientY; st = Date.now();
+    ok = e.touches.length === 1 && !e.target.closest('.daystrip, input, textarea, select, [contenteditable="true"], [contenteditable="plaintext-only"], .drawer, .dialog, .osheet');
+  }, { passive: true });
+  document.addEventListener('touchend', e => {
+    if (!ok || !ORG_ON) return; ok = false;
+    const t = e.changedTouches[0], dx = t.clientX - sx, dy = t.clientY - sy;
+    if (Date.now() - st > 700 || Math.abs(dx) < 70 || Math.abs(dy) > Math.abs(dx) * 0.6) return;
+    if (dx > 0 && !orgUi.open && !ui.drawerId && !ui.dialog && store.state !== 'locked') openOrg();
+    else if (dx < 0 && orgUi.open && !orgUi.sheet && !orgUi.picker && !orgUi.assign) closeOrg();
+  }, { passive: true });
+  document.addEventListener('input', e => {
+    if (e.target.id === 'oq') { orgUi.q = e.target.value; renderOrg(); }
+    else if (e.target.id === 'cq' && orgUi.picker) { orgUi.picker.q = e.target.value; renderOrg(); }
+    else if (e.target.id === 'aq' && orgUi.assign) { orgUi.assign.q = e.target.value; renderOrg(); }
+  });
+  document.addEventListener('change', e => {
+    const t = e.target;
+    if (t.id === 'orgfile') { const f = t.files && t.files[0]; t.value = ''; if (f) importFile(f); return; }
+    const p = t.dataset && t.dataset.emp ? personByEmp(t.dataset.emp) : null; if (!p) return;
+    if (t.dataset.change === 'org-unit') orgChange(() => placeIn(p, t.value, t.value === p.unit ? p.role : ''));
+    else if (t.dataset.change === 'org-role') orgChange(() => placeIn(p, p.unit, t.value));
+  });
+})();
 
 /* =====================================================================
    7. Start-up
