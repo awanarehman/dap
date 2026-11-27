@@ -35,6 +35,13 @@ public class PhonePlugin extends Plugin {
     @PluginMethod
     public void contacts(PluginCall call) {
         if (getPermissionState("contacts") != PermissionState.GRANTED) {
+            if (call.getBoolean("quiet", false)) {          // only if already allowed: never asks
+                JSObject out = new JSObject();
+                out.put("contacts", new JSArray());
+                out.put("allowed", false);
+                call.resolve(out);
+                return;
+            }
             requestPermissionForAlias("contacts", call, "afterContactsPermission");
             return;
         }

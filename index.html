@@ -415,6 +415,18 @@ body.org-open{overflow:hidden}
 .dot.on{background:#1E9A4A;box-shadow:0 0 0 3px #D8F1E0}
 .dot.off{background:#AAB4BE}
 .dot.unk{background:transparent;border:2px solid #C3CCD4;width:6px;height:6px}
+.rday{flex:none;min-width:24px;height:24px;padding:0 3px;box-sizing:border-box;border-radius:12px;display:inline-flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1}
+.rday.on{background:#DDF3E4;color:#15803D}
+.rday.off{background:#FBE3E4;color:#C0262F}
+.rday.unk{color:#9AA6B1;border:1.5px dashed #C3CCD4}
+.rday.est{background:transparent;border:1.5px dashed currentColor}
+.pcall.maybe{background:var(--paper);color:#1E9A4A;border:2px dashed #1E9A4A;box-shadow:none}
+.sh-rot{margin:8px 0 2px;font-size:13.5px;line-height:1.45;padding:7px 10px;border-radius:6px;background:var(--faint)}
+.sh-rot.on{background:#E3F5E9;color:#17643A}.sh-rot.off{background:#F8E6E7;color:#8A2A30}
+.sh-month{display:flex;gap:2px;margin:8px 0 0}
+.sh-month i{flex:1 1 0;height:14px;border-radius:2px;background:var(--faint)}
+.sh-month i.on{background:#3BAE63}.sh-month i.off{background:#D9545C}.sh-month i.we{background:#D5DBE1}
+.sh-mlab{display:flex;justify-content:space-between;font-size:10.5px;color:var(--muted);margin-top:2px}
 .pmain{flex:1 1 auto;min-width:0}
 .pname{font-size:15px;font-weight:600;color:var(--ink);line-height:1.25}
 .prole{display:inline-block;font-size:11px;font-weight:600;color:#fff;background:var(--red);border-radius:3px;padding:0 5px;margin-left:4px;vertical-align:2px}
@@ -2136,7 +2148,7 @@ const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
 const SYNC_FOLDER = 'Daily Action Plan';
 const SYNC_EVERY = 60000;                                 // while the DAP is open and in view
 const NATIVE = !!(window.Capacitor && typeof Capacitor.getPlatform === 'function' && Capacitor.getPlatform() !== 'web' && window.capacitorExports);
-const Native = NATIVE ? (() => { const reg = capacitorExports.registerPlugin; return { auth: reg('DriveAuth'), notes: reg('LocalNotifications'), app: reg('App'), share: reg('Share'), fs: reg('Filesystem'), phone: reg('Phone') }; })() : null;
+const Native = NATIVE ? (() => { const reg = capacitorExports.registerPlugin; return { auth: reg('DriveAuth'), notes: reg('LocalNotifications'), app: reg('App'), share: reg('Share'), fs: reg('Filesystem'), phone: reg('Phone'), inbox: reg('Inbox') }; })() : null;
 const WEB_SYNC_OK = !NATIVE && (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1');
 const SYNC_POSSIBLE = (NATIVE || WEB_SYNC_OK) && !!GOOGLE.clientId;
 const LOCAL_ONLY = { settings: ['compact', 'printPersonal', 'updatedAt'], sections: ['collapsed'] };   // view choices that stay with each device
@@ -2507,7 +2519,9 @@ async function startNative() {
       else if (a.actionId === 'snooze60') answerReminder(rid, 'snooze', 60);
       else acts['rem-open']({ dataset: { rid } });
     });
-    Native.app.addListener('appStateChange', s => { if (s.isActive) { reminderTick(); syncSoon(300); } else { flush(); if (sync.on) syncOnce(); } });
+    Native.app.addListener('appStateChange', s => { if (s.isActive) { reminderTick(); syncSoon(300); if (orgUi.open) renderOrg(); } else { flush(); if (sync.on) syncOnce(); } });
+    Native.inbox.addListener('received', () => takeShared());
+    setTimeout(takeShared, 300);
     Native.app.addListener('backButton', () => {
       if (orgBack()) return;
       if (ui.menuId) { ui.menuId = null; render(); }
@@ -2546,6 +2560,7 @@ const ORG_UNITS = [
   { id: 'u-pf', name: 'Production Facilities', parent: 'u-pefd' },
   { id: 'u-corr', name: 'Corrosion', parent: 'u-pefd' },
   { id: 'u-tele', name: 'Telemetry', parent: 'u-pefd' },
+  { id: 'u-pdms', name: 'PDMS / Marketing', parent: 'u-prod' },
   { id: 'u-pp', name: 'Process & Plant', parent: 'u-fm', head: 'Plant Manager' },
   { id: 'u-process', name: 'Process', parent: 'u-pp' },
   { id: 'u-mech', name: 'Mechanical', parent: 'u-pp' },
@@ -2588,11 +2603,34 @@ function dutyFrom(codes) {            // codes: oldest to latest; a time means a
   }
   return { s: '', why: 'No record', at: null, lastIn };
 }
+/* ---------- the 21 days on / 21 days off rotation: which day of it someone is on today ---------- */
+const ROT = 21, KEEP_DAYS = 45;
+function rotationFrom(codes, from, to, day) {   // -> { s: 'on'|'off', n: day of the rotation, start, est } or null
+  const st = codes.map(c => /\d/.test(c) ? 1 : c === 'R' || c === 'L' || c === 'A' ? 0 : null);
+  const first = st.findIndex(x => x !== null); if (first < 0) return null;
+  for (let k = 0; k < st.length; k++) if (st[k] === null) st[k] = k < first ? st[first] : st[k - 1];     // weekends, holidays and blanks follow the day before
+  // a short break inside a rotation (a call-back of a day or two while off, a short leave while on) does not start a new one
+  const runs = []; for (let k = 0; k < st.length; k++) if (!k || st[k] !== st[k - 1]) runs.push({ s: st[k], a: k, n: 1 }); else runs[runs.length - 1].n++;
+  for (let r = 1; r < runs.length - 1; r++) if (runs[r].n <= 3 && runs[r - 1].s === runs[r + 1].s && runs[r - 1].n + runs[r + 1].n > 3) { for (let k = runs[r].a; k < runs[r].a + runs[r].n; k++) st[k] = runs[r - 1].s; runs[r].s = runs[r - 1].s; }
+  let s = st[st.length - 1], a = st.length - 1;
+  while (a > 0 && st[a - 1] === s) a--;
+  let n = st.length - a, start = addDays(from, a), est = a === 0;      // a run that began before the report is at least this long
+  const ext = Math.max(0, Math.round((dayToDate(day) - dayToDate(to)) / 864e5));
+  for (let k = 1; k <= ext; k++) { if (n >= ROT) { s = 1 - s; n = 1; start = addDays(to, k); est = true; } else n++; }    // days after the report: the rotation is assumed to carry on
+  return { s: s ? 'on' : 'off', n, start, est, ext, since: a > 0 };
+}
 const dutyRec = () => (db.duty || []).find(d => d.id === 'duty') || null;
+let dutyMemo = { rec: null, key: '', map: new Map() };
 function dutyOf(p) {
   const d = dutyRec(); if (!d || !d.codes || !d.codes[p.emp]) return { s: '', why: 'Not in the latest report' };
-  const r = dutyFrom(d.codes[p.emp]);
-  return Object.assign(r, { lastInDay: r.lastIn === null ? null : addDays(d.from, r.lastIn), lastInAt: r.lastIn === null ? null : d.codes[p.emp][r.lastIn] });
+  const key = (d.updatedAt || d.to) + '|' + today();
+  if (dutyMemo.rec !== d || dutyMemo.key !== key) dutyMemo = { rec: d, key, map: new Map() };
+  if (dutyMemo.map.has(p.emp)) return dutyMemo.map.get(p.emp);
+  const codes = d.codes[p.emp], r = dutyFrom(codes), rot = rotationFrom(codes, d.from, d.to, today());
+  Object.assign(r, { lastInDay: r.lastIn === null ? null : addDays(d.from, r.lastIn), lastInAt: r.lastIn === null ? null : codes[r.lastIn], rot });
+  if (rot && rot.s !== r.s) { r.why = rot.s === 'off' ? (rot.ext ? 'Rota (expected)' : 'Rota') : ''; r.s = rot.s; }
+  dutyMemo.map.set(p.emp, r);
+  return r;
 }
 
 /* ---------- reading the attendance report (PDF) ---------- */
@@ -2654,15 +2692,15 @@ function applyReport(rep) {           // -> a line saying what changed
     for (const k of ['name', 'desig', 'dept', 'grade']) if (r[k] && p[k] !== r[k]) { p[k] = r[k]; ch = true; }
     if (ch) { p.updatedAt = nowIso(); updated++; }
   }
-  const old = dutyRec();
-  let dutyNote = '';
-  if (!old || rep.to >= old.to) {
-    const codes = {}, days = [];
-    for (let d = rep.from; d <= rep.to; d = addDays(d, 1)) days.push(d);
-    for (const r of list) codes[r.emp] = days.map(d => DAY_CODE(r.days[d]));
-    db.duty = [{ id: 'duty', from: rep.from, to: rep.to, codes, importedAt: nowIso(), updatedAt: nowIso() }];
-    dutyNote = `Duty now follows the report for ${shortDate(rep.from)} to ${shortDate(rep.to)}.`;
-  } else dutyNote = `This report ends ${shortDate(rep.to)}, earlier than the one in use (${shortDate(old.to)}), so duty was left as it was.`;
+  const old = dutyRec(), byDay = {};      // emp -> { day: code }: the days already kept, then this report's days on top
+  if (old && old.codes) for (const [emp, arr] of Object.entries(old.codes)) { const m = byDay[emp] = {}; arr.forEach((c, k) => { if (c) m[addDays(old.from, k)] = c; }); }
+  for (const r of list) { const m = byDay[r.emp] || (byDay[r.emp] = {}); for (let d = rep.from; d <= rep.to; d = addDays(d, 1)) m[d] = DAY_CODE(r.days[d]); }
+  const to = old && old.to > rep.to ? old.to : rep.to, low = addDays(to, -(KEEP_DAYS - 1));
+  let from = old && old.from < rep.from ? old.from : rep.from; if (from < low) from = low;
+  const days = []; for (let d = from; d <= to; d = addDays(d, 1)) days.push(d);
+  const codes = {}; for (const [emp, m] of Object.entries(byDay)) codes[emp] = days.map(d => m[d] || '');
+  db.duty = [{ id: 'duty', from, to, codes, importedAt: nowIso(), updatedAt: nowIso() }];
+  const dutyNote = `Duty days now cover ${shortDate(from)} to ${shortDate(to)} (${plural(days.length, 'day')}).`;
   return `${plural(list.length, 'person', 'people')} in the report: ${added} new, ${updated} with changed details. ${dutyNote}${added ? ' New people are placed by department and designation; any that could not be placed are under "Not placed yet".' : ''}`;
 }
 function importOrgFile(data) {
@@ -2686,8 +2724,21 @@ function exportOrg() {
 }
 async function importFile(file) {
   orgUi.busy = 'Reading ' + file.name + '…'; orgUi.msg = null; renderOrg();
+  let buf; try { buf = await file.arrayBuffer(); } catch (e) { orgUi.busy = null; orgUi.msg = { ok: false, text: 'The file could not be read: ' + (e.message || e) }; renderOrg(); return; }
+  return importBuffer(buf, file.name);
+}
+async function takeShared() {          // a file sent to the DAP with Share > DAP or Open with > DAP
+  if (!NATIVE || !db) return;
+  let r; try { r = await Native.inbox.take(); } catch (e) { if (!orgUi.open) openOrg(); orgUi.msg = { ok: false, text: e.message || String(e) }; renderOrg(); return; }
+  if (!r || !r.data) return;
+  const bin = atob(r.data), buf = new Uint8Array(bin.length); for (let k = 0; k < bin.length; k++) buf[k] = bin.charCodeAt(k);
+  if (!orgUi.open) openOrg();
+  await importBuffer(buf.buffer, r.name || 'the shared file');
+}
+async function importBuffer(buf, name) {
+  orgUi.busy = 'Reading ' + name + '…'; orgUi.msg = null; renderOrg();
   try {
-    const buf = await file.arrayBuffer(); let note;
+    let note;
     const head = new Uint8Array(buf.slice(0, 5)), isPdf = String.fromCharCode(...head) === '%PDF-';
     if (isPdf) { const rep = parseAttendance(await readPdfPages(buf)); orgChange(() => { note = applyReport(rep); }); }
     else { const data = JSON.parse(new TextDecoder().decode(buf)); orgChange(() => { note = importOrgFile(data); }); }
@@ -2700,7 +2751,8 @@ async function importFile(file) {
 const NAME_VARIANTS = { mohammad: 'muhammad', muhammed: 'muhammad', mohammed: 'muhammad', mohamed: 'muhammad', mohd: 'muhammad', muhamamd: 'muhammad', muhamad: 'muhammad', md: 'muhammad', ahmed: 'ahmad', hussein: 'hussain', husain: 'hussain', hassan: 'hasan', sayed: 'syed', syyed: 'syed', sayyed: 'syed', rehman: 'rahman', ullah: 'ullah' };
 const NAME_LIGHT = { muhammad: 0.15, m: 0, syed: 0.3, ahmad: 0.45, ali: 0.45, khan: 0.45, hussain: 0.45, abdul: 0.35, ul: 0, ud: 0, e: 0, ur: 0, din: 0.35, shah: 0.5, sheikh: 0.4, mir: 0.4 };
 const NOT_NAMES = new Set(['ogdcl', 'kpd', 'tay', 'kunnar', 'sir', 'engr', 'eng', 'engineer', 'sb', 'sahib', 'sahab', 'saab', 'mr', 'dr', 'process', 'mech', 'mechanical', 'elect', 'electrical', 'inst', 'instrument', 'prod', 'production', 'plant', 'office', 'pp', 'pefd', 'lab', 'hr', 'mmd', 'hseq', 'security', 'driver', 'optr', 'operator', 'new', 'old', 'work', 'home', 'pk', 'boss', 'field', 'manager', 'fm', 'om', 'pm', 'gm', 'dgm', 'tele', 'telemetry', 'admin']);
-const nameTokens = s => String(s || '').toLowerCase().replace(/[^a-z\s]/g, ' ').split(/\s+/).filter(Boolean).map(t => NAME_VARIANTS[t] || t);
+const tokMemo = new Map();
+const nameTokens = s => { const k = String(s || ''); let t = tokMemo.get(k); if (!t) { t = k.toLowerCase().replace(/[^a-z\s]/g, ' ').split(/\s+/).filter(Boolean).map(t => NAME_VARIANTS[t] || t); if (tokMemo.size > 20000) tokMemo.clear(); tokMemo.set(k, t); } return t; };
 function nameScore(person, contactName) {
   const pt = nameTokens(person), ct = nameTokens(contactName); if (!pt.length || !ct.length) return 0;
   const cjoin = ct.join(''), cset = new Set(ct);
@@ -2718,6 +2770,7 @@ function bestNumber(c) {
   return pick.number;
 }
 function suggestFor(p, contacts) {
+  if (contacts === orgUi.contacts) return likelyFor(p);
   return contacts.map(c => ({ c, s: nameScore(p.name, c.name) })).filter(x => x.s >= 0.5).sort((a, b) => b.s - a.s).slice(0, 6);
 }
 function matchContacts(contacts) {           // links people whose name matches exactly one contact clearly; -> counts
@@ -2731,17 +2784,48 @@ function matchContacts(contacts) {           // links people whose name matches 
   let linked = 0, choose = 0;
   for (const p of want) {
     const c = best.get(p.emp);
-    if (c && used.get(c.id) === 1) { p.phone = bestNumber(c); p.phoneName = c.name; p.updatedAt = nowIso(); linked++; }
+    if (c && used.get(c.id) === 1) { p.phone = bestNumber(c); p.phoneName = c.name; p.phoneCid = c.id; p.updatedAt = nowIso(); linked++; }
     else if (suggestFor(p, contacts).length) choose++;
   }
   return { linked, choose, none: want.length - linked - choose };
 }
-async function loadContacts() {
+async function loadContacts(quiet) {
   if (orgUi.contacts) return orgUi.contacts;
   if (!NATIVE) throw new Error('Contacts can be read in the phone app only.');
-  const r = await Native.phone.contacts();
+  const r = await Native.phone.contacts({ quiet: !!quiet });
+  if (quiet && r.allowed === false) return null;
   orgUi.contacts = (r.contacts || []).filter(c => c.name && (c.numbers || []).length);
+  orgUi.sugg = null;
   return orgUi.contacts;
+}
+const sameNumber = (a, b) => { const x = String(a || '').replace(/\D/g, '').slice(-10), y = String(b || '').replace(/\D/g, '').slice(-10); return x.length >= 7 && x === y; };
+function refreshNumbers(contacts) {       // a linked contact whose number changed: follow its default number; -> how many changed
+  const byId = new Map(contacts.map(c => [c.id, c])); let n = 0;
+  for (const p of db.people) {
+    if (!p.phone) continue;
+    if (!p.phoneCid) { const c = contacts.find(c => c.name === p.phoneName && (c.numbers || []).some(x => sameNumber(x.number, p.phone))); if (c) { p.phoneCid = c.id; p.updatedAt = nowIso(); n++; } continue; }
+    const c = byId.get(p.phoneCid);
+    if (c && !(c.numbers || []).some(x => sameNumber(x.number, p.phone)) && bestNumber(c)) { p.phone = bestNumber(c); p.phoneName = c.name; p.updatedAt = nowIso(); n++; }
+  }
+  return n;
+}
+function likelyFor(p) {          // the contacts that may be this person (worked out once per reading of the contacts)
+  if (!orgUi.contacts) return [];
+  if (!orgUi.sugg) orgUi.sugg = new Map();
+  if (!orgUi.sugg.has(p.emp)) orgUi.sugg.set(p.emp, orgUi.contacts.map(c => ({ c, s: nameScore(p.name, c.name) })).filter(x => x.s >= 0.5).sort((a, b) => b.s - a.s).slice(0, 6));
+  return orgUi.sugg.get(p.emp);
+}
+async function autoLink() {       // each time the organogram opens: clear matches are linked and numbers kept up to date
+  if (!NATIVE || !db || !(db.people || []).length) return;
+  let asked = false; try { asked = !!localStorage.getItem('dap.contactsAsked'); } catch (e) { }
+  orgUi.contacts = null;
+  let cs = null;
+  try { cs = await loadContacts(asked); } catch (e) { cs = null; }
+  try { localStorage.setItem('dap.contactsAsked', '1'); } catch (e) { }
+  if (!cs || !orgUi.open) return;
+  const before = JSON.stringify(db.people.map(p => [p.phone, p.phoneCid]));
+  matchContacts(cs); refreshNumbers(cs);
+  if (JSON.stringify(db.people.map(p => [p.phone, p.phoneCid])) !== before) orgChange(() => { }); else renderOrg();
 }
 async function callPerson(p) {
   if (!p || !p.phone) return;
@@ -2772,9 +2856,12 @@ const PHONE_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="curre
 function personRow(p, u) {
   const d = dutyOf(p), role = roleName(p, u);
   const off = d.s === 'off', on = d.s === 'on';
-  const call = p.phone ? `<button class="pcall" data-act="org-call" data-emp="${esc(p.emp)}" aria-label="Call ${esc(p.name)}">${PHONE_SVG}</button>` : `<button class="plink" data-act="org-pick" data-emp="${esc(p.emp)}" aria-label="Choose a number for ${esc(p.name)}">+ No.</button>`;
+  const call = p.phone ? `<button class="pcall" data-act="org-call" data-emp="${esc(p.emp)}" aria-label="Call ${esc(p.name)}">${PHONE_SVG}</button>`
+    : p.unit !== GONE && likelyFor(p).length ? `<button class="pcall maybe" data-act="org-pickcall" data-emp="${esc(p.emp)}" aria-label="Call ${esc(p.name)}: choose the number once">${PHONE_SVG}</button>`
+    : `<button class="plink" data-act="org-pick" data-emp="${esc(p.emp)}" aria-label="Choose a number for ${esc(p.name)}">+ No.</button>`;
+  const rot = d.rot, tip = rot ? `${on ? 'On duty' : 'Off duty'}, day ${rot.n} of ${ROT}${rot.est ? ' (estimated)' : ''}` : on ? 'On duty' : off ? 'Off: ' + d.why : 'Not known';
   return `<div class="prow${off ? ' off' : ''}" data-act="org-person" data-emp="${esc(p.emp)}">
-    <span class="dot ${on ? 'on' : off ? 'off' : 'unk'}" title="${on ? 'On duty' : off ? 'Off: ' + esc(d.why) : 'Not known'}"></span>
+    <span class="rday ${on ? 'on' : off ? 'off' : 'unk'}${rot && rot.est ? ' est' : ''}" title="${esc(tip)}" aria-label="${esc(tip)}">${rot ? rot.n : on || off ? '•' : '–'}</span>
     <div class="pmain"><div class="pname">${hiOrg(p.name)}${role ? ` <span class="prole">${esc(role)}</span>` : ''}</div><div class="pdesc">${hiOrg(p.desig)} &middot; ${esc(p.grade)}${off ? ` &middot; <i>${esc(d.why === 'Rota' ? 'on rota' : d.why.toLowerCase())}</i>` : ''}</div></div>
     ${call}
   </div>`;
@@ -2858,8 +2945,10 @@ function personSheet() {
     <div class="sh-grip"></div>
     <h3>${esc(p.name)}</h3>
     <p class="sh-sub">${esc(p.desig)} &middot; ${esc(p.grade)} &middot; ${esc(p.dept)} &middot; #${esc(p.emp)}</p>
-    <div class="sh-duty ${d.s}">${d.s === 'on' ? `On duty${d.lastInAt ? ` &middot; checked in ${esc(d.lastInAt)} on ${shortDate(d.lastInDay)}` : ''}` : d.s === 'off' ? `Off &middot; ${esc(d.why)}${d.lastInDay ? ` &middot; last checked in ${shortDate(d.lastInDay)}` : ''}` : esc(d.why || 'Not known')}</div>
+    ${d.rot ? '' : `<div class="sh-duty ${d.s}">${d.s === 'on' ? `On duty${d.lastInAt ? ` &middot; checked in ${esc(d.lastInAt)} on ${shortDate(d.lastInDay)}` : ''}` : d.s === 'off' ? `Off &middot; ${esc(d.why)}${d.lastInDay ? ` &middot; last checked in ${shortDate(d.lastInDay)}` : ''}` : esc(d.why || 'Not known')}</div>`}
+    ${d.rot ? `<div class="sh-rot ${d.s}">${rotLine(d.rot)}${d.lastInDay ? `<br><small>Last check-in ${esc(d.lastInAt)} on ${shortDate(d.lastInDay)}${d.s === 'off' && d.why ? ' &middot; ' + esc(d.why.toLowerCase()) : ''}</small>` : ''}</div>` : ''}
     ${strip ? `<div class="sh-strip">${strip}</div>` : ''}
+    ${codes.length ? `<div class="sh-month" aria-label="The last ${Math.min(30, codes.length)} days">${codes.slice(-30).map((c, k, a) => { const day = addDays(rec.to, k - a.length + 1); return `<i class="${/\d/.test(c) ? 'on' : c === 'W' || c === 'H' ? 'we' : c ? 'off' : ''}" title="${shortDate(day)}: ${/\d/.test(c) ? 'in ' + esc(c) : esc({ R: 'Rota', L: 'Leave', A: 'Absent', W: 'Weekend', H: 'Holiday' }[c] || 'no record')}"></i>`; }).join('')}</div><div class="sh-mlab"><span>${shortDate(addDays(rec.to, -Math.min(30, codes.length) + 1))}</span><span>${shortDate(rec.to)}</span></div>` : ''}
     <div class="sh-row"><span class="sh-k">Number</span><span class="sh-v">${p.phone ? `${esc(p.phone)}${p.phoneName ? `<small>from &ldquo;${esc(p.phoneName)}&rdquo;</small>` : ''}` : '<i>none yet</i>'}</span>
       ${p.phone ? `<button class="btn callbtn" data-act="org-call" data-emp="${esc(p.emp)}">${PHONE_SVG} Call</button>` : ''}<button class="btn" data-act="org-pick" data-emp="${esc(p.emp)}">${p.phone ? 'Change' : 'Choose'}</button></div>
     <label class="sh-row"><span class="sh-k">Place</span><select data-change="org-unit" data-emp="${esc(p.emp)}">${opts.map(([v, n]) => `<option value="${esc(v)}"${(p.unit || '') === v ? ' selected' : ''}>${esc(n)}</option>`).join('')}</select></label>
@@ -2867,15 +2956,22 @@ function personSheet() {
     <div class="sh-foot"><button class="btn" data-act="org-sheet-off">Done</button></div>
   </div></div>`;
 }
+function rotLine(r) {
+  const on = r.s === 'on', next = addDays(r.start, ROT);
+  return `<b>${on ? 'On duty' : 'Off duty'}, day ${r.n}</b> of ${ROT}${r.est ? ' <small>(estimated)</small>' : ''}<br>`
+    + `${r.since || r.ext ? `${on ? 'Duty' : 'Off days'} began ${shortDate(r.start)}` : `${on ? 'On duty' : 'Off'} since at least ${shortDate(r.start)}`}`
+    + (r.n <= ROT ? ` &middot; ${on ? 'goes off' : 'back on duty'} about ${shortDate(next)}` : ` &middot; ${r.n - ROT} days past the usual ${ROT}`);
+}
 function pickerSheet() {
   const p = personByEmp(orgUi.picker.emp); if (!p) return '';
   const cs = orgUi.contacts || [], q = (orgUi.picker.q || '').trim().toLowerCase();
   const sug = q ? [] : suggestFor(p, cs).map(x => x.c);
   const list = q ? cs.filter(c => c.name.toLowerCase().includes(q) || (c.numbers || []).some(n => n.number.replace(/\D/g, '').includes(q.replace(/\D/g, '') || '¤'))).slice(0, 60) : sug;
-  const row = c => (c.numbers || []).map(n => `<button class="crow" data-act="org-setnum" data-emp="${esc(p.emp)}" data-num="${esc(n.number)}" data-cname="${esc(c.name)}"><span class="cname">${esc(c.name)}</span><span class="cnum">${esc(n.number)}${n.type ? ` <small>${esc(n.type)}</small>` : ''}</span></button>`).join('');
+  const row = c => (c.numbers || []).map(n => `<button class="crow" data-act="org-setnum" data-emp="${esc(p.emp)}" data-num="${esc(n.number)}" data-cname="${esc(c.name)}" data-cid="${esc(c.id)}"><span class="cname">${esc(c.name)}</span><span class="cnum">${esc(n.number)}${n.type ? ` <small>${esc(n.type)}</small>` : ''}</span></button>`).join('');
   return `<div class="osheet-veil" data-act="org-picker-off"><div class="osheet" role="dialog" aria-label="Number for ${esc(p.name)}" data-stop="1">
     <div class="sh-grip"></div>
-    <h3>Number for ${esc(p.name)}</h3>
+    <h3>${orgUi.picker.call ? 'Call' : 'Number for'} ${esc(p.name)}</h3>
+    ${orgUi.picker.call ? '<p class="sh-sub">Tap the right number. It is called now and remembered, so next time one tap calls.</p>' : ''}
     ${orgUi.picker.error ? `<div class="notice bad"><p>${esc(orgUi.picker.error)}</p></div>` : ''}
     <input type="search" id="cq" class="qbox" placeholder="Search your contacts" value="${esc(orgUi.picker.q || '')}" autocomplete="off" aria-label="Search contacts">
     <div class="clist">${!cs.length && !orgUi.picker.error ? '<p class="none">Reading your contacts…</p>' : list.length ? (q ? '' : '<div class="ogroup">Likely matches</div>') + list.map(row).join('') : `<p class="none">${q ? 'No contact matches.' : 'No likely match. Search your contacts above.'}</p>`}</div>
@@ -2908,7 +3004,7 @@ function renderOrg() {
   const c2 = $('.clist', box); if (c2) c2.scrollTop = cy;
   if (fid && $('#' + fid, box)) { const el = $('#' + fid, box); el.focus(); try { el.setSelectionRange(fpos, fpos); } catch (e) { } }
 }
-function openOrg() { orgUi.open = true; orgUi.menu = false; renderOrg(); }
+function openOrg() { orgUi.open = true; orgUi.menu = false; renderOrg(); autoLink(); }
 function closeOrg() { orgUi.open = false; orgUi.sheet = orgUi.picker = orgUi.assign = null; orgUi.menu = false; renderOrg(); }
 function orgBack() {           // the phone's Back button while the organogram is open; true if it did something
   if (!orgUi.open) return false;
@@ -2916,8 +3012,8 @@ function orgBack() {           // the phone's Back button while the organogram i
   else if (orgUi.menu) orgUi.menu = false; else if (orgUi.q) orgUi.q = ''; else if (orgUi.review) orgUi.review = false; else { closeOrg(); return true; }
   renderOrg(); return true;
 }
-async function openPicker(emp) {
-  orgUi.picker = { emp, q: '', error: null }; renderOrg();
+async function openPicker(emp, call) {
+  orgUi.picker = { emp, q: '', error: null, call: !!call }; renderOrg();
   try { await loadContacts(); } catch (e) { orgUi.picker.error = (e.message || String(e)) + ' You can still type a number below.'; }
   renderOrg();
 }
@@ -2932,9 +3028,10 @@ const orgActs = {
   'org-call'(el) { callPerson(personByEmp(el.dataset.emp)); },
   'org-pick'(el) { openPicker(el.dataset.emp); },
   'org-picker-off'(el, e) { if (e && e.target.closest('[data-stop]') && !e.target.closest('.btn')) return; orgUi.picker = null; renderOrg(); },
-  'org-setnum'(el) { const p = personByEmp(el.dataset.emp); orgUi.picker = null; if (p) orgChange(() => { p.phone = el.dataset.num; p.phoneName = el.dataset.cname || ''; p.updatedAt = nowIso(); }); },
-  'org-typenum'(el) { const v = ($('#typednum') || {}).value || '', p = personByEmp(el.dataset.emp); if (!/\d{5,}/.test(v.replace(/\D/g, ''))) return; orgUi.picker = null; if (p) orgChange(() => { p.phone = v.trim(); p.phoneName = ''; p.updatedAt = nowIso(); }); },
-  'org-clearnum'(el) { const p = personByEmp(el.dataset.emp); orgUi.picker = null; if (p) orgChange(() => { p.phone = ''; p.phoneName = ''; p.updatedAt = nowIso(); }); },
+  'org-setnum'(el) { const p = personByEmp(el.dataset.emp), call = orgUi.picker && orgUi.picker.call; orgUi.picker = null; if (p) { orgChange(() => { p.phone = el.dataset.num; p.phoneName = el.dataset.cname || ''; p.phoneCid = el.dataset.cid || ''; p.updatedAt = nowIso(); }); if (call) callPerson(p); } },
+  'org-typenum'(el) { const v = ($('#typednum') || {}).value || '', p = personByEmp(el.dataset.emp), call = orgUi.picker && orgUi.picker.call; if (!/\d{5,}/.test(v.replace(/\D/g, ''))) return; orgUi.picker = null; if (p) { orgChange(() => { p.phone = v.trim(); p.phoneName = ''; p.phoneCid = ''; p.updatedAt = nowIso(); }); if (call) callPerson(p); } },
+  'org-clearnum'(el) { const p = personByEmp(el.dataset.emp); orgUi.picker = null; if (p) orgChange(() => { p.phone = ''; p.phoneName = ''; p.phoneCid = ''; p.updatedAt = nowIso(); }); },
+  'org-pickcall'(el) { openPicker(el.dataset.emp, true); },
   'org-assign'(el) { orgUi.assign = { unit: el.dataset.unit, role: el.dataset.role, q: '' }; renderOrg(); },
   'org-assign-off'(el, e) { if (e && e.target.closest('[data-stop]') && !e.target.closest('.btn')) return; orgUi.assign = null; renderOrg(); },
   'org-assign-to'(el) { const a = orgUi.assign, p = personByEmp(el.dataset.emp); orgUi.assign = null; if (p && a) orgChange(() => placeIn(p, a.unit, a.role)); },
@@ -2943,7 +3040,7 @@ const orgActs = {
   'org-review'() { orgUi.review = !orgUi.review; orgUi.menu = false; renderOrg(); },
   async 'org-match'() {
     orgUi.menu = false; orgUi.busy = 'Reading your contacts…'; renderOrg();
-    try { const cs = await loadContacts(); let r; orgChange(() => { r = matchContacts(cs); }); orgUi.msg = { ok: true, text: `${plural(r.linked, 'person', 'people')} linked to a contact automatically. ${r.choose} have possible matches to choose from, and ${r.none} were not found in your contacts. Use "People without a number" in the menu to go through them.` }; }
+    try { orgUi.contacts = null; const cs = await loadContacts(); let r; orgChange(() => { r = matchContacts(cs); refreshNumbers(cs); }); orgUi.msg = { ok: true, text: `${plural(r.linked, 'person', 'people')} linked to a contact automatically. ${r.choose} have possible matches to choose from, and ${r.none} were not found in your contacts. Use "People without a number" in the menu to go through them.` }; }
     catch (e) { orgUi.msg = { ok: false, text: 'Your contacts could not be read (' + (e.message || e) + ').' }; }
     orgUi.busy = null; renderOrg();
   },
